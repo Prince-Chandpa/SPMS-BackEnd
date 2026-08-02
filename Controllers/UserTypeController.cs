@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Data;
+using spm_backend.DTOs.UserType;
 using spm_backend.Models;
 
 namespace spm_backend.Controllers
@@ -20,49 +21,83 @@ namespace spm_backend.Controllers
         public async Task<IActionResult> GetAll()
         {
             var userTypes = await _context.UserTypes.ToListAsync();
+
+            var result = userTypes.Select(ut => new UserTypeDto
+            {
+                UserTypeID = ut.UserTypeID,
+                UserTypeName = ut.UserTypeName,
+                Description = ut.Description,
+                IsActive = ut.IsActive
+            });
             
-            return Ok(userTypes);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var userType = await _context.UserTypes.FindAsync(id);
-            if(userType == null) return NotFound("Role Not Found!!");
-            return Ok(userType);
+            
+            if(userType == null) return NotFound("User Type Not Found!!");
+
+            var result = new UserTypeDto
+            {
+                UserTypeID = userType.UserTypeID,
+                UserTypeName = userType.UserTypeName,
+                Description = userType.Description,
+                IsActive = userType.IsActive
+            };
+            
+            return Ok(result);
         }
         
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] UserType userType)
+        public async Task<IActionResult> Create([FromBody] CreateUserTypeDto dto)
         {
-            if (userType == null)
-                return BadRequest("User Type data is required.");
+            var userType = new UserType
+            {
+                UserTypeName = dto.UserTypeName,
+                Description = dto.Description,
+                IsActive = dto.IsActive
+            };
 
-            await _context.UserTypes.AddAsync(userType);
+            _context.UserTypes.Add(userType);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new { id = userType.UserTypeID }, userType);
+            var result = new UserTypeDto
+            {
+                UserTypeID = userType.UserTypeID,
+                UserTypeName = userType.UserTypeName,
+                Description = userType.Description,
+                IsActive = userType.IsActive
+            };
+            
+            return CreatedAtAction(nameof(GetById), new { id = result.UserTypeID }, result);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UserType userType)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateUserTypeDto dto)
         {
-            if(userType == null)
-                return BadRequest("User Type data is required.");
-            if (id != userType.UserTypeID)
-                return BadRequest("User Type ID mismatch.");
-            
             var existingUserType = await _context.UserTypes.FindAsync(id);
 
             if (existingUserType == null)
                 return NotFound("User Type Not Found !!");
             
-            existingUserType.UserTypeName = userType.UserTypeName;
-            existingUserType.Description = userType.Description;
+            existingUserType.UserTypeName = dto.UserTypeName;
+            existingUserType.Description = dto.Description;
+            existingUserType.IsActive = dto.IsActive;
 
             await _context.SaveChangesAsync();
+            
+            var result = new UserTypeDto
+            {
+                UserTypeID = existingUserType.UserTypeID,
+                UserTypeName = existingUserType.UserTypeName,
+                Description = existingUserType.Description,
+                IsActive = existingUserType.IsActive
+            };
 
-            return Ok(existingUserType);
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
@@ -74,7 +109,6 @@ namespace spm_backend.Controllers
                 return NotFound("User Type Not Found !!");
             
             _context.UserTypes.Remove(userType);
-            
             await _context.SaveChangesAsync();
 
             return NoContent();

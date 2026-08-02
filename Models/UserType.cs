@@ -8,11 +8,16 @@ public class UserType
     [Key]
     public int UserTypeID { get; set; }
     
-    [Required,MaxLength(50)]
+    [Required]
+    [MaxLength(50)]
     public string UserTypeName { get; set; } = string.Empty;
     
     [MaxLength(250)]
     public string Description { get; set; } =  string.Empty;
+    
+    public bool IsActive { get; set; } = true;
+
+    public bool IsDeleted { get; set; } = false;
     
     [JsonIgnore]
     public ICollection<User> Users { get; set; } = new List<User>();
