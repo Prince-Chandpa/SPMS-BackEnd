@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Data;
+using spm_backend.DTOs.Role;
 using spm_backend.Models;
 
 namespace spm_backend.Controllers
@@ -19,49 +20,83 @@ namespace spm_backend.Controllers
         public async Task<IActionResult> GetAll()
         {
             var roles = await _context.Roles.ToListAsync();
+
+            var result = roles.Select(r => new RoleDto
+            {
+                RoleID = r.RoleID,
+                RoleName = r.RoleName,
+                Description = r.Description,
+                IsActive = r.IsActive
+            });
             
-            return Ok(roles);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var role = await _context.Roles.FindAsync(id);
+            
             if(role == null) return NotFound("Role Not Found!!");
-            return Ok(role);
+            
+            var result = new RoleDto
+            {
+                RoleID = role.RoleID,
+                RoleName = role.RoleName,
+                Description = role.Description,
+                IsActive = role.IsActive
+            };
+            
+            return Ok(result);
         }
         
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Role role)
+        public async Task<IActionResult> Create([FromBody] CreateRoleDto dto)
         {
-            if (role == null)
-                return BadRequest("Role data is required.");
+            var role = new Role
+            {
+                RoleName = dto.RoleName,
+                Description = dto.Description,
+                IsActive = dto.IsActive
+            };
 
-            await _context.Roles.AddAsync(role);
+            _context.Roles.Add(role);
             await _context.SaveChangesAsync();
+            
+            var result = new RoleDto
+            {
+                RoleID = role.RoleID,
+                RoleName = role.RoleName,
+                Description = role.Description,
+                IsActive = role.IsActive
+            };
 
-            return CreatedAtAction(nameof(GetById), new { id = role.RoleID }, role);
+            return CreatedAtAction(nameof(GetById), new { id = result.RoleID }, result);
         }
         
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Role role)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateRoleDto dto)
         {
-            if(role == null)
-                return BadRequest("Role data is required.");
-            if (id != role.RoleID)
-                return BadRequest("Role ID mismatch.");
-            
             var existingRole = await _context.Roles.FindAsync(id);
 
             if (existingRole == null)
                 return NotFound("Role Not Found !!");
 
-            existingRole.RoleName = role.RoleName;
-            existingRole.Description = role.Description;
+            existingRole.RoleName = dto.RoleName;
+            existingRole.Description = dto.Description;
+            existingRole.IsActive = dto.IsActive;
 
             await _context.SaveChangesAsync();
+            
+            var result = new RoleDto
+            {
+                RoleID = existingRole.RoleID,
+                RoleName = existingRole.RoleName,
+                Description = existingRole.Description,
+                IsActive = existingRole.IsActive
+            };
 
-            return Ok(existingRole);
+            return Ok(result);
         }
         
         [HttpDelete("{id}")]
@@ -73,7 +108,6 @@ namespace spm_backend.Controllers
                 return NotFound("Role Not Found !!");
             
             _context.Roles.Remove(role);
-            
             await _context.SaveChangesAsync();
 
             return NoContent();
