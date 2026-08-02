@@ -27,5 +27,22 @@ public class AppDbContext : DbContext
             .HasOne(u => u.UserType)
             .WithMany(u => u.Users)
             .HasForeignKey(u => u.UserTypeID);
+        
+        modelBuilder.Entity<ProjectAllocation>()
+            .HasOne(pa => pa.ProjectMaster)
+            .WithMany()
+            .HasForeignKey(pa => pa.ProjectID);
+
+        modelBuilder.Entity<ProjectAllocation>()
+            .HasOne(pa => pa.UserStudent)
+            .WithMany()
+            .HasForeignKey(pa => pa.StudentID)
+            .OnDelete(DeleteBehavior.NoAction);
+        
+        modelBuilder.Entity<ProjectAllocation>()
+            .HasOne(pa => pa.UserFaculty)
+            .WithMany()
+            .HasForeignKey(pa => pa.FacultyID)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

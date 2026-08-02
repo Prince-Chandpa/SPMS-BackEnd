@@ -8,15 +8,15 @@ public class ProjectAllocation
     [Key] 
     public int ProjectAllocationID { get; set; }
     
-    [ForeignKey("ProjectID"), Required]
+    [ForeignKey(nameof(ProjectMaster)), Required]
     public int ProjectID { get; set; }
     public ProjectMaster ProjectMaster { get; set; }
     
-    [ForeignKey("UserID"), Required]
+    [ForeignKey(nameof(UserStudent)), Required]
     public int StudentID { get; set; }
     public User UserStudent { get; set; }
     
-    [ForeignKey("UserID"), Required]
+    [ForeignKey(nameof(UserFaculty)), Required]
     public int FacultyID { get; set; }
     public User UserFaculty { get; set; }
     
