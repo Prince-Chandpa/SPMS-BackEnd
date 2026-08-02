@@ -1,20 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace spm_backend.Models;
+namespace spm_backend.DTOs.ProjectMaster;
 
-public class ProjectMaster
+public class CreateProjectMasterDto
 {
-    [Key] 
-    public int ProjectMasterID { get; set; }
-    
     [Required]
     [MaxLength(200)] 
     public string ProjectTitle { get; set; } =  string.Empty;
     
-    [MaxLength(Int32.MaxValue)]
     public string Description { get; set; } =  string.Empty;
     
     public bool IsActive { get; set; } = true;
-
-    public bool IsDeleted { get; set; } = false;
 }
