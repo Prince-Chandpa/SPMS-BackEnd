@@ -1,0 +1,14 @@
+# Build output
+bin/
+obj/
+
+# Rider
+.idea/
+
+# Visual Studio
+.vs/
+
+# Environment variables
+.env
+.env.*
+!.env.example
