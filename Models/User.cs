@@ -24,13 +24,13 @@ public class User
     [Required,MaxLength(150)]
     public string Email { get; set; } = string.Empty;
     
-    [Required,MaxLength(Int32.MaxValue)]
+    [Required,StringLength(255)]
     public string Password { get; set; } = string.Empty;
     
     [Required,Phone,MaxLength(15)]
     public string MobileNumber { get; set; } = string.Empty;
     
-    [Required,MaxLength(500)]
+    [MaxLength(500)]
     public string ProfilePicturePath { get; set; } = string.Empty;
     
     [Required]
