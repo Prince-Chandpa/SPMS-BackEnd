@@ -44,5 +44,15 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(pa => pa.FacultyID)
             .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.User)
+            .WithMany()
+            .HasForeignKey(ur => ur.UserID);
+        
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.Role)
+            .WithMany()
+            .HasForeignKey(ur => ur.RoleID);
     }
 }
