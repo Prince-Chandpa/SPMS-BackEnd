@@ -1,12 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace spm_backend.Models;
+namespace spm_backend.DTOs.TaskStatus;
 
-public class TaskStatus
+public class UpdateTaskStatusDto
 {
-    [Key]
-    public int TaskStatusID { get; set; }
-    
     [Required]
     [MaxLength(20)]
     public string TaskStatusName { get; set; } = string.Empty;
@@ -16,6 +13,4 @@ public class TaskStatus
     public string TaskStatusCssClass { get; set; } =  string.Empty;
     
     public bool IsActive { get; set; } = true;
-    
-    public bool IsDeleted { get; set; } = false;
 }
