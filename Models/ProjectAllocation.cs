@@ -37,10 +37,13 @@ public class ProjectAllocation
     
     [Required]
     public decimal ProgressPercentage {get; set;}
+
+    [MaxLength(1)] 
+    public string OverAllGrade { get; set; } = string.Empty;
+
+    public bool IsActive { get; set; } = true;
     
-    [MaxLength(1)]
-    public string OverAllGrade {get; set;}
-
+    public bool IsDeleted { get; set; } = false;
+    
     public ICollection<Task> Tasks { get; set; } = new List<Task>();
-
 }
