@@ -8,21 +8,21 @@ public class Task
     [Key]
     public int TaskID {get; set;}
     
-    [ForeignKey("ProjectAllocationID"), Required]
+    [ForeignKey(nameof(ProjectAllocation)), Required]
     public int ProjectAllocationID { get; set; }
     public ProjectAllocation ProjectAllocation { get; set; }
     
     [Required,MaxLength(200)]
-    public string TaskTitle { get; set; } = String.Empty;
+    public string TaskTitle { get; set; } = string.Empty;
     
     [MaxLength(250)]
-    public string? TaskDescription { get; set; } = String.Empty;
+    public string TaskDescription { get; set; } = string.Empty;
     
-    [ForeignKey("TaskStatusID"), Required]
+    [ForeignKey(nameof(TaskStatus)), Required]
     public int TaskStatusID { get; set; }
     public TaskStatus TaskStatus { get; set; }
     
-    [ForeignKey("TaskPriorityID"), Required]
+    [ForeignKey(nameof(TaskPriority)), Required]
     public int TaskPriorityID { get; set; }
     public TaskPriority TaskPriority { get; set; }
     
@@ -43,8 +43,12 @@ public class Task
     public DateTime? NextFollowUpDate { get; set; }
     
     [MaxLength(500)]
-    public string FacultyRemarks {get; set;} = String.Empty;
+    public string FacultyRemarks {get; set;} = string.Empty;
     
     [MaxLength(500)]
-    public string StudentRemarks {get; set;} = String.Empty;
+    public string StudentRemarks {get; set;} = string.Empty;
+    
+    public bool IsActive { get; set; } = true;
+    
+    public bool IsDeleted { get; set; } = false;
 }
