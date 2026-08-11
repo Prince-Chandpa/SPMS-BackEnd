@@ -19,21 +19,39 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var users = await _context.Users
-                .Include(u => u.UserType)
-                .ToListAsync();
-            
-            var result = users.Select(u => new UserDto
-            {
-                UserID = u.UserID,
-                UserTypeID = u.UserTypeID,
-                FullName = u.FullName,
-                UserCode = u.UserCode,
-                Email = u.Email,
-                MobileNumber = u.MobileNumber,
-                ProfilePicturePath = u.ProfilePicturePath,
-                IsActive = u.IsActive
-            });
+            // var users = await _context.Users
+            //     .Include(u => u.UserType)
+            //     .ToListAsync();
+            //
+            // var result = users.Select(u => new UserDto
+            // {
+            //     UserID = u.UserID,
+            //     UserTypeID = u.UserTypeID,
+            //     FullName = u.FullName,
+            //     UserCode = u.UserCode,
+            //     Email = u.Email,
+            //     MobileNumber = u.MobileNumber,
+            //     ProfilePicturePath = u.ProfilePicturePath,
+            //     IsActive = u.IsActive
+            // });
+
+            var result = await _context.Users
+                .Join(
+                    _context.UserTypes,
+                    user => user.UserTypeID,
+                    userType => userType.UserTypeID,
+                    (user, userType) => new
+                    {
+                        UserID = user.UserID,
+                        FullName = user.FullName,
+                        UserCode = user.UserCode,
+                        Email = user.Email,
+                        MobileNumber = user.MobileNumber,
+                        
+                        UserTypeId = userType.UserTypeID,
+                        UserTypeName = userType.UserTypeName,
+                    }
+                ).ToListAsync();
             
             return Ok(result);
         }
