@@ -75,7 +75,7 @@ namespace spm_backend.Controllers
         }
         
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateRoleDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] CreateRoleDto dto)
         {
             var existingRole = await _context.Roles.FindAsync(id);
 

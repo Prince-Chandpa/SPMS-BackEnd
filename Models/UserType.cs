@@ -19,6 +19,5 @@ public class UserType
 
     public bool IsDeleted { get; set; } = false;
     
-    [JsonIgnore]
     public ICollection<User> Users { get; set; } = new List<User>();
 }

@@ -12,12 +12,10 @@ public class UserRole
     [ForeignKey("RoleID")]
     [Required]
     public int RoleID { get; set; }
-    [JsonIgnore]
     public Role? Role { get; set; }
     
     [ForeignKey("UserID")]
     [Required]
     public int UserID { get; set; }
-    [JsonIgnore]
     public User? User { get; set; }
 }

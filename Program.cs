@@ -24,6 +24,18 @@ public class Program
         
         // Add services to the container.
         builder.Services.AddAuthorization();
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+            {
+                policy
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
+        });
+        
         builder.Services.AddControllers();
         
         builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
@@ -43,6 +55,7 @@ public class Program
         app.MapGet("/", () => Results.Redirect("scalar"));
 
         app.UseHttpsRedirection();
+        app.UseCors("AllowAll");
         app.UseAuthorization();
         app.MapControllers();
 

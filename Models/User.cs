@@ -12,7 +12,6 @@ public class User
     [ForeignKey("UserTypeID")]
     public int UserTypeID { get; set; }
     
-    [JsonIgnore]
     public UserType? UserType { get; set; }
     
     [Required,MaxLength(150)]
@@ -37,6 +36,4 @@ public class User
     public bool IsActive { get; set; }
 
     public bool IsDeleted { get; set; } = false;
-    
-    // public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }

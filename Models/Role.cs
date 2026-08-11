@@ -20,6 +20,5 @@ public class Role
     
     public bool IsDeleted { get; set; } = false;
     
-    [JsonIgnore]
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }
