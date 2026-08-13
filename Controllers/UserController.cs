@@ -47,7 +47,7 @@ namespace spm_backend.Controllers
                         UserCode = user.UserCode,
                         Email = user.Email,
                         MobileNumber = user.MobileNumber,
-                        
+                        IsActive = user.IsActive,
                         UserTypeId = userType.UserTypeID,
                         UserTypeName = userType.UserTypeName,
                     }
