@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using spm_backend.Common;
 using spm_backend.Data;
 using spm_backend.DTOs.TaskStatus;
 using TaskStatus = spm_backend.Models.TaskStatus;
@@ -20,17 +21,20 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var taskStatuses = await _context.TaskStatuses.ToListAsync();
-
-            var result = taskStatuses.Select(ts => new TaskStatusDto
+            var result = await _context.TaskStatuses.Select(ts => new TaskStatusDto
             {
                 TaskStatusID = ts.TaskStatusID,
                 TaskStatusName = ts.TaskStatusName,
                 TaskStatusCssClass = ts.TaskStatusCssClass,
                 IsActive = ts.IsActive
-            });
+            }).ToListAsync();
             
-            return Ok(result);
+            return Ok(new ApiResponse<List<TaskStatusDto>>
+            {
+                Success = true,
+                Message = "Task Statuses Retrieved Successfully !!",
+                Data = result
+            });
         }
 
         [HttpGet("{id}")]
@@ -38,7 +42,7 @@ namespace spm_backend.Controllers
         {
             var taskStatus = await _context.TaskStatuses.FindAsync(id);
             
-            if(taskStatus == null) return NotFound("Task Status Not Found!!");
+            if(taskStatus == null) return NotFound("Task Status Not Found !!");
             
             var result = new TaskStatusDto
             {
@@ -48,70 +52,139 @@ namespace spm_backend.Controllers
                 IsActive = taskStatus.IsActive
             };
             
-            return Ok(result);
+            return Ok(new ApiResponse<TaskStatusDto>
+            {
+                Success = true,
+                Message = "Task Status Retrieved Successfully !!",
+                Data = result
+            });
         }
         
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTaskStatusDto dto)
         {
-            var taskStatus = new TaskStatus
+            try
             {
-                TaskStatusName = dto.TaskStatusName,
-                TaskStatusCssClass = dto.TaskStatusCssClass,
-                IsActive = dto.IsActive
-            };
+                var taskStatus = new TaskStatus
+                {
+                    TaskStatusName = dto.TaskStatusName,
+                    TaskStatusCssClass = dto.TaskStatusCssClass,
+                    IsActive = dto.IsActive
+                };
+                
+                _context.TaskStatuses.Add(taskStatus);
+                await _context.SaveChangesAsync();
+                
+                var result = new TaskStatusDto
+                {
+                    TaskStatusID = taskStatus.TaskStatusID,
+                    TaskStatusName = taskStatus.TaskStatusName,
+                    TaskStatusCssClass = taskStatus.TaskStatusCssClass,
+                    IsActive = taskStatus.IsActive
+                };
 
-            _context.TaskStatuses.Add(taskStatus);
-            await _context.SaveChangesAsync();
-
-            var result = new TaskStatusDto
+                return Ok(new ApiResponse<TaskStatusDto>
+                {
+                    Success = true,
+                    Message = "Task Status Created Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                TaskStatusID = taskStatus.TaskStatusID,
-                TaskStatusName = taskStatus.TaskStatusName,
-                TaskStatusCssClass = taskStatus.TaskStatusCssClass,
-                IsActive = taskStatus.IsActive
-            };
-
-            return CreatedAtAction(nameof(GetById), new { id = result.TaskStatusID }, result);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occured while creating Task Status !!",
+                    Errors = new List<string>{ex.Message}
+                });
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateTaskStatusDto dto)
         {
-            var existingTaskStatus = await _context.TaskStatuses.FindAsync(id);
-
-            if (existingTaskStatus == null)
-                return NotFound("Task Status Not Found !!");
-
-            existingTaskStatus.TaskStatusName = dto.TaskStatusName;
-            existingTaskStatus.TaskStatusCssClass = dto.TaskStatusCssClass;
-            existingTaskStatus.IsActive = dto.IsActive;
-
-            await _context.SaveChangesAsync();
-
-            var result = new TaskStatusDto
+            try
             {
-                TaskStatusID = existingTaskStatus.TaskStatusID,
-                TaskStatusName = existingTaskStatus.TaskStatusName,
-                TaskStatusCssClass = existingTaskStatus.TaskStatusCssClass,
-                IsActive = existingTaskStatus.IsActive
-            };
-            
-            return Ok(result);
+                var existingTaskStatus = await _context.TaskStatuses.FindAsync(id);
+
+                if (existingTaskStatus == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Task Status Not Found !!",
+                        Errors = new List<string> { $"No task status found with Id {id}" }
+                    });
+                }
+
+                existingTaskStatus.TaskStatusName = dto.TaskStatusName;
+                existingTaskStatus.TaskStatusCssClass = dto.TaskStatusCssClass;
+                existingTaskStatus.IsActive = dto.IsActive;
+
+                await _context.SaveChangesAsync();
+
+                var result = new TaskStatusDto
+                {
+                    TaskStatusID = existingTaskStatus.TaskStatusID,
+                    TaskStatusName = existingTaskStatus.TaskStatusName,
+                    TaskStatusCssClass = existingTaskStatus.TaskStatusCssClass,
+                    IsActive = existingTaskStatus.IsActive
+                };
+
+                return Ok(new ApiResponse<TaskStatusDto>
+                {
+                    Success = true,
+                    Message = "Task Status Updated Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while updating task status !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var taskStatus = await _context.TaskStatuses.FindAsync(id);
+            try
+            {
+                var taskStatus = await _context.TaskStatuses.FindAsync(id);
 
-            if (taskStatus == null)
-                return NotFound("Task Status Not Found !!");
-            
-            _context.TaskStatuses.Remove(taskStatus);            
-            await _context.SaveChangesAsync();
+                if (taskStatus == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Task Status Not Found !!"
+                    });
+                }
+                
+                _context.TaskStatuses.Remove(taskStatus);            
+                await _context.SaveChangesAsync();
 
-            return NoContent();
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Task Status Deleted Successfully",
+                    Data = taskStatus
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while deleting task status !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }
