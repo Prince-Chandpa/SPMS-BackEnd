@@ -37,12 +37,20 @@ namespace spm_backend.Controllers
             });
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetById([FromRoute] int id)
         {
             var taskPriority = await _context.TaskPriorities.FindAsync(id);
 
-            if (taskPriority == null) return NotFound("Task Priority Not Found !!");
+            if (taskPriority == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Task Priority Not Found !!",
+                    Errors = new List<string> { $"No task priority found with Id {id}" }
+                });
+            }
 
             var result = new TaskPriorityDto
             {
@@ -95,14 +103,14 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occured while creating Task Priority !!",
-                    Errors = new List<string>{ex.Message}
+                    Message = "Error occurred while creating Task Priority !!",
+                    Errors = new List<string> { ex.Message }
                 });
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateTaskPriorityDto dto)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateTaskPriorityDto dto)
         {
             try
             {
@@ -150,8 +158,8 @@ namespace spm_backend.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete([FromRoute] int id)
         {
             try
             {
@@ -162,7 +170,7 @@ namespace spm_backend.Controllers
                     return NotFound(new ApiResponse<object>
                     {
                         Success = false,
-                        Message="Task Priority Not Found !!"
+                        Message = "Task Priority Not Found !!"
                     });
                 }
                 
@@ -172,7 +180,7 @@ namespace spm_backend.Controllers
                 return Ok(new ApiResponse<object>
                 {
                     Success = true,
-                    Message = "Task Priority Deleted Successfully",
+                    Message = "Task Priority Deleted Successfully !!",
                     Data = taskPriority
                 });
             }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using spm_backend.Common;
 using spm_backend.Data;
 using spm_backend.DTOs.UserRole;
 using spm_backend.Models;
@@ -19,25 +20,29 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var userRoles = await _context.UserRoles
+            var result = await _context.UserRoles
                 .Include(ur => ur.User)
                 .Include(ur => ur.Role)
+                .Select(ur => new UserRoleDto
+                {
+                    RolePermissionID = ur.RolePermissionID,
+                    RoleID = ur.RoleID,
+                    RoleName = ur.Role.RoleName ?? string.Empty,
+                    UserID = ur.UserID,
+                    UserName = ur.User.FullName ?? string.Empty
+                })
                 .ToListAsync();
 
-            var result = userRoles.Select(ur => new UserRoleDto
+            return Ok(new ApiResponse<List<UserRoleDto>>
             {
-                RolePermissionID = ur.RolePermissionID,
-                RoleID = ur.RoleID,
-                RoleName = ur.Role?.RoleName ?? string.Empty,
-                UserID = ur.UserID,
-                UserName = ur.User?.FullName ?? string.Empty
+                Success = true,
+                Message = "User Role Retrieved Successfully !!",
+                Data = result
             });
-
-            return Ok(result);
         }
         
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetById([FromRoute] int id)
         {
             var userRole = await _context.UserRoles
                 .Include(ur => ur.User)
@@ -45,7 +50,15 @@ namespace spm_backend.Controllers
                 .FirstOrDefaultAsync(ur => ur.RolePermissionID == id);
 
             if (userRole == null)
-                return NotFound("User Role Not Found!!");
+            {
+                return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User Role Not Found !!",
+                        Errors = new List<string> { $"No user role found with Id {id}" }
+                    }
+                );
+            }
             
             var result = new UserRoleDto
             {
@@ -56,96 +69,189 @@ namespace spm_backend.Controllers
                 UserName = userRole.User?.FullName ?? string.Empty
             };
 
-            return Ok(result);
+            return Ok(new ApiResponse<UserRoleDto>
+            {
+                Success = true,
+                Message = "User Role Retrieved Successfully !!",
+                Data = result
+            });
         }
         
         [HttpPost]
-        public async Task<IActionResult> Create(CreateUserRoleDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateUserRoleDto dto)
         {
-            var userExists = await _context.Users.AnyAsync(u => u.UserID == dto.UserID);
-            if (!userExists)
-                return BadRequest("Invalid User ID.");
-
-            var roleExists = await _context.Roles.AnyAsync(r => r.RoleID == dto.RoleID);
-            if (!roleExists)
-                return BadRequest("Invalid Role ID.");
-            
-            var userRole = new UserRole
+            try
             {
-                RoleID = dto.RoleID,
-                UserID = dto.UserID,
-            };
-
-            _context.UserRoles.Add(userRole);
-            await _context.SaveChangesAsync();
+                var userExists = await _context.Users.AnyAsync(u => u.UserID == dto.UserID);
+                if (!userExists)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid User ID."
+                    });
+                }
+                
+                var roleExists = await _context.Roles.AnyAsync(r => r.RoleID == dto.RoleID);
+                if (!roleExists)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid Role ID."
+                    });
+                }
             
-            var createdUserRole = await _context.UserRoles
-                .Include(ur => ur.Role)
-                .Include(ur => ur.User)
-                .FirstAsync(ur => ur.RolePermissionID == userRole.RolePermissionID);
+                var userRole = new UserRole
+                {
+                    RoleID = dto.RoleID,
+                    UserID = dto.UserID,
+                };
 
-            var result = new UserRoleDto
+                _context.UserRoles.Add(userRole);
+                await _context.SaveChangesAsync();
+            
+                var createdUserRole = await _context.UserRoles
+                    .Include(ur => ur.Role)
+                    .Include(ur => ur.User)
+                    .FirstAsync(ur => ur.RolePermissionID == userRole.RolePermissionID);
+
+                var result = new UserRoleDto
+                {
+                    RolePermissionID = createdUserRole.RolePermissionID,
+                    RoleID = createdUserRole.RoleID,
+                    RoleName = createdUserRole.Role?.RoleName ?? string.Empty,
+                    UserID = createdUserRole.UserID,
+                    UserName = createdUserRole.User?.FullName ?? string.Empty,
+                };
+            
+                return Ok(new ApiResponse<UserRoleDto>
+                {
+                    Success = true,
+                    Message = "User Role Created Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                RolePermissionID = createdUserRole.RolePermissionID,
-                RoleID = createdUserRole.RoleID,
-                RoleName = createdUserRole.Role?.RoleName ?? string.Empty,
-                UserID = createdUserRole.UserID,
-                UserName = createdUserRole.User?.FullName ?? string.Empty,
-            };
-            
-            return CreatedAtAction(nameof(GetById), new { id = result.RolePermissionID }, result);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while creating user role !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, UpdateUserRoleDto dto)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody]  UpdateUserRoleDto dto)
         {
-            var existingUserRole = await _context.UserRoles.FindAsync(id);
-
-            if (existingUserRole == null)
-                return NotFound("User Role Not Found !!");
-            
-            var userExists = await _context.Users.AnyAsync(u => u.UserID == dto.UserID);
-            if (!userExists)
-                return BadRequest("Invalid User ID.");
-
-            var roleExists = await _context.Roles.AnyAsync(r => r.RoleID == dto.RoleID);
-            if (!roleExists)
-                return BadRequest("Invalid Role ID.");
-            
-            existingUserRole.RoleID = dto.RoleID;
-            existingUserRole.UserID = dto.UserID;
-
-            await _context.SaveChangesAsync();
-            
-            var updatedUserRole = await _context.UserRoles
-                .Include(ur => ur.Role)
-                .Include(ur => ur.User)
-                .FirstAsync(ur => ur.RolePermissionID == existingUserRole.RolePermissionID);
-            
-            var result = new UserRoleDto
+            try
             {
-                RolePermissionID = updatedUserRole.RolePermissionID,
-                RoleID = updatedUserRole.RoleID,
-                RoleName = updatedUserRole.Role?.RoleName ?? string.Empty,
-                UserID = updatedUserRole.UserID,
-                UserName = updatedUserRole.User?.FullName ?? string.Empty
-            };
+                var existingUserRole = await _context.UserRoles.FindAsync(id);
 
-            return Ok(result);
+                if (existingUserRole == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User Role Not Found !!",
+                        Errors = new List<string> { $"No User Role found with Id {id}" }
+                    });
+                }
+
+                var userExists = await _context.Users.AnyAsync(u => u.UserID == dto.UserID);
+                if (!userExists)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid User ID."
+                    });
+                }
+
+                var roleExists = await _context.Roles.AnyAsync(r => r.RoleID == dto.RoleID);
+                if (!roleExists)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid Role ID."
+                    });
+                }
+
+                existingUserRole.RoleID = dto.RoleID;
+                existingUserRole.UserID = dto.UserID;
+
+                await _context.SaveChangesAsync();
+
+                var updatedUserRole = await _context.UserRoles
+                    .Include(ur => ur.Role)
+                    .Include(ur => ur.User)
+                    .FirstAsync(ur => ur.RolePermissionID == existingUserRole.RolePermissionID);
+
+                var result = new UserRoleDto
+                {
+                    RolePermissionID = updatedUserRole.RolePermissionID,
+                    RoleID = updatedUserRole.RoleID,
+                    RoleName = updatedUserRole.Role?.RoleName ?? string.Empty,
+                    UserID = updatedUserRole.UserID,
+                    UserName = updatedUserRole.User?.FullName ?? string.Empty
+                };
+
+                return Ok(new ApiResponse<UserRoleDto>
+                {
+                    Success = false,
+                    Message = "User Role Updated Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<UserRoleDto>
+                {
+                    Success = false,
+                    Message = "Error occurred while updating User Role !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var userRole = await _context.UserRoles.FindAsync(id);
+            try
+            {
+                var userRole = await _context.UserRoles.FindAsync(id);
 
-            if (userRole == null)
-                return NotFound("User Role Not Found !!");
-            
-            _context.UserRoles.Remove(userRole);
-            await _context.SaveChangesAsync();
+                if (userRole == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User Role Not Found !!"
+                    });
+                }
 
-            return NoContent();
+                _context.UserRoles.Remove(userRole);
+                await _context.SaveChangesAsync();
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "User Role Deleted Successfully !!",
+                    Data = userRole
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<UserRoleDto>
+                {
+                    Success = false,
+                    Message = "Error occurred while deleting User Role !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using spm_backend.Common;
 using spm_backend.Data;
 using spm_backend.DTOs.Role;
 using spm_backend.Models;
@@ -19,25 +20,37 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var roles = await _context.Roles.ToListAsync();
-
-            var result = roles.Select(r => new RoleDto
+            var result = await _context.Roles.Select(r => new RoleDto
             {
                 RoleID = r.RoleID,
                 RoleName = r.RoleName,
                 Description = r.Description,
                 IsActive = r.IsActive
-            });
+            }).ToListAsync();
             
-            return Ok(result);
+            return Ok(new ApiResponse<List<RoleDto>>
+            {
+                Success = true,
+                Message = "Role Retrieved Successfully !!",
+                Data = result
+            });
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
             var role = await _context.Roles.FindAsync(id);
             
-            if(role == null) return NotFound("Role Not Found!!");
+            if(role == null)
+            {
+                return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Role Not Found !!",
+                        Errors = new List<string> { $"No role found with Id {id}" }
+                    }
+                );
+            }
             
             var result = new RoleDto
             {
@@ -47,70 +60,139 @@ namespace spm_backend.Controllers
                 IsActive = role.IsActive
             };
             
-            return Ok(result);
+            return Ok(new ApiResponse<RoleDto>
+            {
+                Success = true,
+                Message = "Role Retrieved Successfully !!",
+                Data = result
+            });
         }
         
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRoleDto dto)
         {
-            var role = new Role
+            try
             {
-                RoleName = dto.RoleName,
-                Description = dto.Description,
-                IsActive = dto.IsActive
-            };
+                var role = new Role
+                {
+                    RoleName = dto.RoleName,
+                    Description = dto.Description,
+                    IsActive = dto.IsActive
+                };
 
-            _context.Roles.Add(role);
-            await _context.SaveChangesAsync();
-            
-            var result = new RoleDto
+                _context.Roles.Add(role);
+                await _context.SaveChangesAsync();
+
+                var result = new RoleDto
+                {
+                    RoleID = role.RoleID,
+                    RoleName = role.RoleName,
+                    Description = role.Description,
+                    IsActive = role.IsActive
+                };
+
+                return Ok(new ApiResponse<RoleDto>
+                {
+                    Success = true,
+                    Message = "Role Created Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                RoleID = role.RoleID,
-                RoleName = role.RoleName,
-                Description = role.Description,
-                IsActive = role.IsActive
-            };
-
-            return CreatedAtAction(nameof(GetById), new { id = result.RoleID }, result);
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while creating role !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] CreateRoleDto dto)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] CreateRoleDto dto)
         {
-            var existingRole = await _context.Roles.FindAsync(id);
-
-            if (existingRole == null)
-                return NotFound("Role Not Found !!");
-
-            existingRole.RoleName = dto.RoleName;
-            existingRole.Description = dto.Description;
-            existingRole.IsActive = dto.IsActive;
-
-            await _context.SaveChangesAsync();
-            
-            var result = new RoleDto
+            try
             {
-                RoleID = existingRole.RoleID,
-                RoleName = existingRole.RoleName,
-                Description = existingRole.Description,
-                IsActive = existingRole.IsActive
-            };
+                var existingRole = await _context.Roles.FindAsync(id);
 
-            return Ok(result);
+                if (existingRole == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Role Not Found !!",
+                        Errors = new List<string> { $"No Role found with Id {id}" }
+                    });
+                }
+
+                existingRole.RoleName = dto.RoleName;
+                existingRole.Description = dto.Description;
+                existingRole.IsActive = dto.IsActive;
+
+                await _context.SaveChangesAsync();
+
+                var result = new RoleDto
+                {
+                    RoleID = existingRole.RoleID,
+                    RoleName = existingRole.RoleName,
+                    Description = existingRole.Description,
+                    IsActive = existingRole.IsActive
+                };
+
+                return Ok(new ApiResponse<RoleDto>
+                {
+                    Success = false,
+                    Message = "Role Updated Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<RoleDto>
+                {
+                    Success = false,
+                    Message = "Error occurred while updating Role !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var role = await _context.Roles.FindAsync(id);
+            try
+            {
+                var role = await _context.Roles.FindAsync(id);
 
-            if (role == null)
-                return NotFound("Role Not Found !!");
-            
-            _context.Roles.Remove(role);
-            await _context.SaveChangesAsync();
+                if (role == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Role Not Found !!"
+                    });
+                }
 
-            return NoContent();
+                _context.Roles.Remove(role);
+                await _context.SaveChangesAsync();
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Role Deleted Successfully !!",
+                    Data = role
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<RoleDto>
+                {
+                    Success = false,
+                    Message = "Error occurred while deleting Role !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }

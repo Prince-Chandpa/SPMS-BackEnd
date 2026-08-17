@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using spm_backend.Common;
 using spm_backend.Data;
 using spm_backend.DTOs.User;
 using spm_backend.Models;
@@ -48,16 +49,16 @@ namespace spm_backend.Controllers
                         Email = user.Email,
                         MobileNumber = user.MobileNumber,
                         IsActive = user.IsActive,
-                        UserTypeId = userType.UserTypeID,
+                        UserTypeID = userType.UserTypeID,
                         UserTypeName = userType.UserTypeName,
                     }
                 ).ToListAsync();
-            
+
             return Ok(result);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetById([FromRoute] int id)
         {
             var user = await _context.Users
                 .Include(u => u.UserType)
@@ -115,8 +116,8 @@ namespace spm_backend.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.UserID }, result);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto dto)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateUserDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             
@@ -151,8 +152,8 @@ namespace spm_backend.Controllers
             return Ok(result);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete([FromRoute] int id)
         {
             var user = await _context.Users.FindAsync(id);
 
