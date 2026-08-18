@@ -1,7 +1,9 @@
 using DotNetEnv;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using spm_backend.Data;
+using spm_backend.Validators;
 
 namespace spm_backend;
 
@@ -36,9 +38,11 @@ public class Program
             });
         });
         
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(option=> option.ModelValidatorProviders.Clear());
         
         builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+        
+        builder.Services.AddValidatorsFromAssemblyContaining<CreateRoleValidator>();
         
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
