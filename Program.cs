@@ -42,7 +42,7 @@ public class Program
         
         builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
         
-        builder.Services.AddValidatorsFromAssemblyContaining<RoleValidator>();
+        builder.Services.AddValidatorsFromAssemblyContaining<CreateRoleValidator>();
         
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();

@@ -1,7 +1,6 @@
-using Microsoft.AspNetCore.Http;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NuGet.Repositories;
 using spm_backend.Common;
 using spm_backend.Data;
 using spm_backend.DTOs.UserType;
@@ -14,9 +13,14 @@ namespace spm_backend.Controllers
     public class UserTypeController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public UserTypeController(AppDbContext context)
+        private readonly IValidator<CreateUserTypeDto> _createValidator;
+        private readonly IValidator<UpdateUserTypeDto> _updateValidator;
+        
+        public UserTypeController(AppDbContext context, IValidator<CreateUserTypeDto> createValidator, IValidator<UpdateUserTypeDto> updateValidator)
         {
             _context = context;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
 
         [HttpGet]
@@ -75,6 +79,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _createValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var userType = new UserType
                 {
                     UserTypeName = dto.UserTypeName,
@@ -116,6 +135,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _updateValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var existingUserType = await _context.UserTypes.FindAsync(id);
 
                 if (existingUserType == null)

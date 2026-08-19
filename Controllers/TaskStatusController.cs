@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Common;
@@ -12,10 +13,14 @@ namespace spm_backend.Controllers
     public class TaskStatusController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IValidator<CreateTaskStatusDto> _createValidator;
+        private readonly IValidator<UpdateTaskStatusDto> _updateValidator;
 
-        public TaskStatusController(AppDbContext context)
+        public TaskStatusController(AppDbContext context, IValidator<CreateTaskStatusDto> createValidator, IValidator<UpdateTaskStatusDto> updateValidator)
         {
             _context = context;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
 
         [HttpGet]
@@ -73,6 +78,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _createValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var taskStatus = new TaskStatus
                 {
                     TaskStatusName = dto.TaskStatusName,
@@ -114,6 +134,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _updateValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var existingTaskStatus = await _context.TaskStatuses.FindAsync(id);
 
                 if (existingTaskStatus == null)

@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Common;
@@ -12,9 +13,14 @@ namespace spm_backend.Controllers
     public class TaskController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public TaskController(AppDbContext context)
+        private readonly IValidator<CreateTaskDto> _createValidator;
+        private readonly IValidator<UpdateTaskDto> _updateValidator;
+        
+        public TaskController(AppDbContext context, IValidator<CreateTaskDto> createValidator, IValidator<UpdateTaskDto> updateValidator)
         {
             _context = context;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
 
         [HttpGet]
@@ -113,6 +119,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _createValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 if (!await _context.ProjectAllocations.AnyAsync(pa => pa.ProjectAllocationID == dto.ProjectAllocationID))
                 {
                     return BadRequest(new ApiResponse<object>
@@ -217,6 +238,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _updateValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var task = await _context.Tasks.FindAsync(id);
 
                 if (task == null)

@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Common;
@@ -12,10 +13,14 @@ namespace spm_backend.Controllers
     public class TaskPriorityController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IValidator<CreateTaskPriorityDto> _createValidator;
+        private readonly IValidator<UpdateTaskPriorityDto> _updateValidator;
 
-        public TaskPriorityController(AppDbContext context)
+        public TaskPriorityController(AppDbContext context, IValidator<CreateTaskPriorityDto> createValidator, IValidator<UpdateTaskPriorityDto> updateValidator)
         {
             _context = context;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
         
         [HttpGet]
@@ -73,6 +78,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _createValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var taskPriority = new TaskPriority
                 {
                     TaskPriorityName = dto.TaskPriorityName,
@@ -114,6 +134,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _updateValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var existingTaskPriority = await _context.TaskPriorities.FindAsync(id);
 
                 if (existingTaskPriority == null)

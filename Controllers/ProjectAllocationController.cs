@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Common;
@@ -12,10 +13,14 @@ namespace spm_backend.Controllers
     public class ProjectAllocationController : ControllerBase
     {
         private readonly AppDbContext _context;
-
-        public ProjectAllocationController(AppDbContext context)
+        private readonly IValidator<CreateProjectAllocationDto> _createValidator;
+        private readonly IValidator<UpdateProjectAllocationDto> _updateValidator;
+        
+        public ProjectAllocationController(AppDbContext context, IValidator<CreateProjectAllocationDto> createValidator, IValidator<UpdateProjectAllocationDto> updateValidator)
         {
             _context = context;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
         
         [HttpGet]
@@ -103,6 +108,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _createValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 if (!await _context.ProjectMasters.AnyAsync(p => p.ProjectMasterID == dto.ProjectID))
                 {
                     return BadRequest(new ApiResponse<object>
@@ -196,6 +216,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _updateValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var existingProjectAllocation = await _context.ProjectAllocations.FindAsync(id);
 
                 if (existingProjectAllocation == null)

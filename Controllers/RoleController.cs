@@ -15,6 +15,7 @@ namespace spm_backend.Controllers
         private readonly AppDbContext _context;
         private readonly IValidator<CreateRoleDto> _createValidator;
         private readonly IValidator<UpdateRoleDto> _updateValiator;
+        
         public RoleController(AppDbContext context, IValidator<CreateRoleDto> createValidator, IValidator<UpdateRoleDto> updateValiator)
         {
             _context = context;
@@ -86,12 +87,10 @@ namespace spm_backend.Controllers
                     {
                         Success = false,
                         Message = "Validation Failed",
-                        Data = null,
-         
                         Errors = validator.Errors
-                        .GroupBy(x => x.PropertyName)
-                        .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
-                        .ToList()
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
                     });
                 }
                 
@@ -144,8 +143,6 @@ namespace spm_backend.Controllers
                     {
                         Success = false,
                         Message = "Validation Failed",
-                        Data = null,
-         
                         Errors = validator.Errors
                             .GroupBy(x => x.PropertyName)
                             .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")

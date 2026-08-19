@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Common;
@@ -12,9 +13,14 @@ namespace spm_backend.Controllers
     public class UserRoleController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public UserRoleController(AppDbContext context)
+        private readonly IValidator<CreateUserRoleDto> _createValidator;
+        private readonly IValidator<UpdateUserRoleDto> _updateValidator;
+        
+        public UserRoleController(AppDbContext context, IValidator<CreateUserRoleDto> createValidator, IValidator<UpdateUserRoleDto> updateValidator)
         {
             _context = context;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
 
         [HttpGet]
@@ -82,7 +88,23 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _createValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var userExists = await _context.Users.AnyAsync(u => u.UserID == dto.UserID);
+                
                 if (!userExists)
                 {
                     return BadRequest(new ApiResponse<object>
@@ -93,6 +115,7 @@ namespace spm_backend.Controllers
                 }
                 
                 var roleExists = await _context.Roles.AnyAsync(r => r.RoleID == dto.RoleID);
+                
                 if (!roleExists)
                 {
                     return BadRequest(new ApiResponse<object>
@@ -148,6 +171,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _updateValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var existingUserRole = await _context.UserRoles.FindAsync(id);
 
                 if (existingUserRole == null)

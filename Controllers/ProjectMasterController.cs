@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Common;
@@ -12,10 +13,14 @@ namespace spm_backend.Controllers
     public class ProjectMasterController : ControllerBase
     {
         private readonly AppDbContext _context;
-
-        public ProjectMasterController(AppDbContext context)
+        private readonly IValidator<CreateProjectMasterDto> _createValidator;
+        private readonly IValidator<UpdateProjectMasterDto> _updateValidator;
+        
+        public ProjectMasterController(AppDbContext context,  IValidator<CreateProjectMasterDto> createValidator, IValidator<UpdateProjectMasterDto> updateValidator)
         {
             _context = context;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
         
         [HttpGet]
@@ -73,6 +78,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _createValidator.ValidateAsync(dto);
+                
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var projectMaster = new ProjectMaster
                 {
                     ProjectTitle = dto.ProjectTitle,
@@ -114,6 +134,21 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var validator = await _updateValidator.ValidateAsync(dto);
+
+                if (!validator.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Object>
+                    {
+                        Success = false,
+                        Message = "Validation Failed",
+                        Errors = validator.Errors
+                            .GroupBy(x => x.PropertyName)
+                            .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
+                            .ToList()
+                    });
+                }
+                
                 var existingProjectMaster = await _context.ProjectMasters.FindAsync(id);
 
                 if (existingProjectMaster == null)
