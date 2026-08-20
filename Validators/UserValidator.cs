@@ -1,12 +1,17 @@
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using spm_backend.Data;
 using spm_backend.DTOs.User;
 
 namespace spm_backend.Validators;
 
 public class CreateUserValidator : AbstractValidator<CreateUserDto>
 {
-    public CreateUserValidator()
+    private readonly AppDbContext _context;
+    public CreateUserValidator(AppDbContext context)
     {
+        _context = context;
+        
         RuleFor(x => x.UserTypeID)
             .GreaterThan(0)
             .WithMessage("UserTypeID must be greater than 0.");
@@ -52,13 +57,25 @@ public class CreateUserValidator : AbstractValidator<CreateUserDto>
         RuleFor(x => x.ProfilePicturePath)
             .MaximumLength(500)
             .WithMessage("Profile picture path is limited to 500 characters.");
+        
+        // Data Exists Validation
+        RuleFor(x => x.UserTypeID)
+            .MustAsync(async (userTypeID, cancellation) =>
+            {
+                return await _context.UserTypes
+                    .AnyAsync(x => x.UserTypeID == userTypeID, cancellation);
+            })
+            .WithMessage("Selected User type does not exist.");
     }
 }
 
 public class UpdateUserValidator : AbstractValidator<UpdateUserDto>
 {
-    public UpdateUserValidator()
+    private readonly AppDbContext _context;
+    public UpdateUserValidator(AppDbContext context)
     {
+        _context = context;
+        
         RuleFor(x => x.UserTypeID)
             .GreaterThan(0)
             .WithMessage("UserTypeID must be greater than 0.");
@@ -103,5 +120,13 @@ public class UpdateUserValidator : AbstractValidator<UpdateUserDto>
         RuleFor(x => x.ProfilePicturePath)
             .MaximumLength(500)
             .WithMessage("Profile picture path is limited to 500 characters.");
+        
+        RuleFor(x => x.UserTypeID)
+            .MustAsync(async (userTypeID, cancellation) =>
+            {
+                return await _context.UserTypes
+                    .AnyAsync(x => x.UserTypeID == userTypeID, cancellation);
+            })
+            .WithMessage("Selected User type does not exist.");
     }
 }
