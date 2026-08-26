@@ -178,7 +178,7 @@ namespace spm_backend.Controllers
 
                 return Ok(new ApiResponse<UserTypeDto>
                 {
-                    Success = false,
+                    Success = true,
                     Message = "User Type Updated Successfully !!",
                     Data = result
                 });
@@ -229,6 +229,27 @@ namespace spm_backend.Controllers
                     Errors = new List<string> { ex.Message }
                 });
             }
+        }
+        
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetAllDropDown()
+        {
+            var result = await _context.UserTypes
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.UserTypeName)
+                .Select(x => new UserTypeDto
+                {
+                    UserTypeID = x.UserTypeID,
+                    UserTypeName = x.UserTypeName,
+                }).ToListAsync();
+                
+            return Ok(new ApiResponse<List<UserTypeDto>>
+            {
+                Success = true,
+                Message = "User Type Retrieved Successfully !!",
+                Data = result
+            });
         }
     }
 }

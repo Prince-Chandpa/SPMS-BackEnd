@@ -362,5 +362,27 @@ namespace spm_backend.Controllers
                 });
             }
         }
+        
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetAllDropDown()
+        {
+            var result = await _context.ProjectAllocations
+                .AsNoTracking()
+                .OrderBy(x => x.ProjectMaster.ProjectTitle)
+                .Select(x => new ProjectAllocationDto
+                {
+                    ProjectAllocationID = x.ProjectAllocationID,
+                    ProjectTitle = x.ProjectMaster.ProjectTitle,
+                    StudentName = x.UserStudent.FullName,
+                    FacultyName = x.UserFaculty.FullName
+                }).ToListAsync();
+                
+            return Ok(new ApiResponse<List<ProjectAllocationDto>>
+            {
+                Success = true,
+                Message = "Project Allocations Retrieved Successfully !!",
+                Data = result
+            });
+        }
     }
 }

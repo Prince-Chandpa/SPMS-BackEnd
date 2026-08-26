@@ -229,6 +229,26 @@ namespace spm_backend.Controllers
                 });
             }
         }
+        
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetAllDropDown()
+        {
+            var result = await _context.ProjectMasters
+                .AsNoTracking()
+                .OrderBy(x => x.ProjectTitle)
+                .Select(x => new ProjectMasterDto
+                {
+                    ProjectMasterID = x.ProjectMasterID,
+                    ProjectTitle = x.ProjectTitle,
+                }).ToListAsync();
+                
+            return Ok(new ApiResponse<List<ProjectMasterDto>>
+            {
+                Success = true,
+                Message = "Project Retrieved Successfully !!",
+                Data = result
+            });
+        }
     }
 }
 

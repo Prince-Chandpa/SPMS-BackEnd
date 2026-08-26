@@ -239,7 +239,7 @@ namespace spm_backend.Controllers
 
                 return Ok(new ApiResponse<UserRoleDto>
                 {
-                    Success = false,
+                    Success = true,
                     Message = "User Role Updated Successfully !!",
                     Data = result
                 });

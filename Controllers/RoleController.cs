@@ -178,7 +178,7 @@ namespace spm_backend.Controllers
 
                 return Ok(new ApiResponse<RoleDto>
                 {
-                    Success = false,
+                    Success = true,
                     Message = "Role Updated Successfully !!",
                     Data = result
                 });
@@ -229,6 +229,26 @@ namespace spm_backend.Controllers
                     Errors = new List<string> { ex.Message }
                 });
             }
+        }
+        
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetAllDropDown()
+        {
+            var result = await _context.Roles
+                .AsNoTracking()
+                .OrderBy(x => x.RoleName)
+                .Select(x => new RoleDto
+                {
+                    RoleID = x.RoleID,
+                    RoleName = x.RoleName,
+                }).ToListAsync();
+                
+            return Ok(new ApiResponse<List<RoleDto>>
+            {
+                Success = true,
+                Message = "Role Retrieved Successfully !!",
+                Data = result
+            });
         }
     }
 }

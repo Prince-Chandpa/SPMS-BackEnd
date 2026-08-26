@@ -229,5 +229,25 @@ namespace spm_backend.Controllers
                 });
             }
         }
+        
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetAllDropDown()
+        {
+            var result = await _context.TaskPriorities
+                .AsNoTracking()
+                .OrderBy(x => x.TaskPriorityName)
+                .Select(x => new TaskPriorityDto
+                {
+                    TaskPriorityID = x.TaskPriorityID,
+                    TaskPriorityName = x.TaskPriorityName,
+                }).ToListAsync();
+                
+            return Ok(new ApiResponse<List<TaskPriorityDto>>
+            {
+                Success = true,
+                Message = "Task Priorities Retrieved Successfully !!",
+                Data = result
+            });
+        }
     }
 }

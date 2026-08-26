@@ -297,5 +297,68 @@ namespace spm_backend.Controllers
                 });
             }
         }
+        
+        [HttpGet("dropdown")]
+        public async Task<IActionResult> GetAllDropDown()
+        {
+            var result = await _context.Users
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.FullName)
+                .Select(x => new UserDto
+                {
+                    UserID = x.UserID,
+                    FullName = x.FullName,
+                }).ToListAsync();
+                
+            return Ok(new ApiResponse<List<UserDto>>
+            {
+                Success = true,
+                Message = "Users Retrieved Successfully !!",
+                Data = result
+            });
+        }
+        
+        [HttpGet("dropdown/students")]
+        public async Task<IActionResult> GetStudentDropDown()
+        {
+            var result = await _context.Users
+                .AsNoTracking()
+                .Where(x => x.IsActive && !x.IsDeleted && x.UserType.UserTypeName == "Student")
+                .OrderBy(x => x.FullName)
+                .Select(x => new UserDto
+                {
+                    UserID = x.UserID,
+                    FullName = x.FullName,
+                }).ToListAsync();
+                
+            return Ok(new ApiResponse<List<UserDto>>
+            {
+                Success = true,
+                Message = "Students Retrieved Successfully !!",
+                Data = result
+            });
+        }
+        
+        [HttpGet("dropdown/faculty")]
+        public async Task<IActionResult> GetFacultyDropDown()
+        {
+            var result = await _context.Users
+                .AsNoTracking()
+                .Where(x => x.IsActive && !x.IsDeleted && x.UserType.UserTypeName == "Faculty")
+                .OrderBy(x => x.FullName)
+                .Select(x => new UserDto
+                {
+                    UserID = x.UserID,
+                    FullName = x.FullName,
+                }).ToListAsync();
+                
+            return Ok(new ApiResponse<List<UserDto>>
+            {
+                Success = true,
+                Message = "Faculty Retrieved Successfully !!",
+                Data = result
+            });
+        }
     }
 }
