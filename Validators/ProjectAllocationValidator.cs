@@ -1,12 +1,17 @@
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using spm_backend.Data;
 using spm_backend.DTOs.ProjectAllocation;
 
 namespace spm_backend.Validators;
 
 public class CreateProjectAllocationValidator : AbstractValidator<CreateProjectAllocationDto>
 {
-    public CreateProjectAllocationValidator()
+    private readonly AppDbContext _context;
+    public CreateProjectAllocationValidator(AppDbContext context)
     {
+        _context = context;
+        
         RuleFor(x => x.ProjectID)
             .GreaterThan(0)
             .WithMessage("ProjectID must be greater than 0.");
@@ -56,13 +61,34 @@ public class CreateProjectAllocationValidator : AbstractValidator<CreateProjectA
             .WithMessage("Overall grade must be a single character.")
             .Must(grade => string.IsNullOrWhiteSpace(grade) || new[] {"A","B","C","D","F"}.Contains(grade.ToUpper()))
             .WithMessage("Overall grade must be A, B, C, D, or F.");
+
+        RuleFor(x => x.ProjectID)
+            .MustAsync(async (projectID, cancellation) =>
+                await _context.ProjectMasters
+                    .AnyAsync(x => x.ProjectMasterID == projectID, cancellation))
+            .WithMessage("Selected Project does not exist.");
+        
+        RuleFor(x => x.StudentID)
+            .MustAsync(async (studentID, cancellation) =>
+                await _context.Users
+                    .AnyAsync(x => x.UserID == studentID && x.UserType.UserTypeName == "Student", cancellation))
+            .WithMessage("Selected Student does not exist.");
+        
+        RuleFor(x => x.FacultyID)
+            .MustAsync(async (facultyID, cancellation) =>
+                await _context.Users
+                    .AnyAsync(x => x.UserID == facultyID && x.UserType.UserTypeName == "Faculty", cancellation))
+            .WithMessage("Selected Faculty does not exist.");
     }
 }
 
 public class UpdateProjectAllocationValidator : AbstractValidator<UpdateProjectAllocationDto>
 {
-    public UpdateProjectAllocationValidator()
+    private readonly AppDbContext _context;
+    public UpdateProjectAllocationValidator(AppDbContext context)
     {
+        _context = context;
+        
         RuleFor(x => x.ProjectID)
             .GreaterThan(0)
             .WithMessage("ProjectID must be greater than 0.");
@@ -116,5 +142,23 @@ public class UpdateProjectAllocationValidator : AbstractValidator<UpdateProjectA
             .WithMessage("Overall grade must be a single character.")
             .Must(grade => string.IsNullOrWhiteSpace(grade) || new[] {"A","B","C","D","F"}.Contains(grade.ToUpper()))
             .WithMessage("Overall grade must be A, B, C, D, or F."); 
+        
+        RuleFor(x => x.ProjectID)
+            .MustAsync(async (projectID, cancellation) =>
+                await _context.ProjectMasters
+                    .AnyAsync(x => x.ProjectMasterID == projectID, cancellation))
+            .WithMessage("Selected Project does not exist.");
+        
+        RuleFor(x => x.StudentID)
+            .MustAsync(async (studentID, cancellation) =>
+                await _context.Users
+                    .AnyAsync(x => x.UserID == studentID && x.UserType.UserTypeName == "Student", cancellation))
+            .WithMessage("Selected Student does not exist.");
+        
+        RuleFor(x => x.FacultyID)
+            .MustAsync(async (facultyID, cancellation) =>
+                await _context.Users
+                    .AnyAsync(x => x.UserID == facultyID && x.UserType.UserTypeName == "Faculty", cancellation))
+            .WithMessage("Selected Faculty does not exist.");
     }
 }

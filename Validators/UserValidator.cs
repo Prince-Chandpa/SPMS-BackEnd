@@ -61,10 +61,8 @@ public class CreateUserValidator : AbstractValidator<CreateUserDto>
         // Data Exists Validation
         RuleFor(x => x.UserTypeID)
             .MustAsync(async (userTypeID, cancellation) =>
-            {
-                return await _context.UserTypes
-                    .AnyAsync(x => x.UserTypeID == userTypeID, cancellation);
-            })
+                await _context.UserTypes
+                    .AnyAsync(x => x.UserTypeID == userTypeID, cancellation))
             .WithMessage("Selected User type does not exist.");
     }
 }
@@ -123,10 +121,8 @@ public class UpdateUserValidator : AbstractValidator<UpdateUserDto>
         
         RuleFor(x => x.UserTypeID)
             .MustAsync(async (userTypeID, cancellation) =>
-            {
-                return await _context.UserTypes
-                    .AnyAsync(x => x.UserTypeID == userTypeID, cancellation);
-            })
+                await _context.UserTypes
+                    .AnyAsync(x => x.UserTypeID == userTypeID, cancellation))
             .WithMessage("Selected User type does not exist.");
     }
 }

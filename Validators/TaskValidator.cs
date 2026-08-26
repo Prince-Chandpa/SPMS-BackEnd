@@ -1,12 +1,17 @@
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using spm_backend.Data;
 using spm_backend.DTOs.Task;
 
 namespace spm_backend.Validators;
 
 public class CreateTaskValidator : AbstractValidator<CreateTaskDto>
 {
-    public CreateTaskValidator()
+    private readonly AppDbContext _context;
+    public CreateTaskValidator(AppDbContext context)
     {
+        _context = context;
+        
         RuleFor(x => x.ProjectAllocationID)
             .GreaterThan(0)
             .WithMessage("Project Allocation ID must be greater than 0.");
@@ -76,13 +81,34 @@ public class CreateTaskValidator : AbstractValidator<CreateTaskDto>
         RuleFor(x => x.StudentRemarks)
             .MaximumLength(500)
             .WithMessage("Student remarks cannot exceed 500 characters.");
+        
+        RuleFor(x => x.ProjectAllocationID)
+            .MustAsync(async (projectAllocationID, cancellation) =>
+                await _context.ProjectAllocations
+                    .AnyAsync(x => x.ProjectAllocationID == projectAllocationID, cancellation))
+            .WithMessage("Selected Project Allocation does not exist.");
+        
+        RuleFor(x => x.TaskStatusID)
+            .MustAsync(async (taskStatusID, cancellation) =>
+                await _context.TaskStatuses
+                    .AnyAsync(x => x.TaskStatusID == taskStatusID, cancellation))
+            .WithMessage("Selected Task Status does not exist.");
+        
+        RuleFor(x => x.TaskPriorityID)
+            .MustAsync(async (taskPriorityID, cancellation) =>
+                await _context.TaskPriorities
+                    .AnyAsync(x => x.TaskPriorityID == taskPriorityID, cancellation))
+            .WithMessage("Selected Task Priority does not exist.");
     }
 }
 
 public class UpdateTaskValidator : AbstractValidator<UpdateTaskDto>
 {
-    public UpdateTaskValidator()
+    private readonly AppDbContext _context;
+    public UpdateTaskValidator(AppDbContext context)
     {
+        _context = context;
+        
         RuleFor(x => x.ProjectAllocationID)
             .GreaterThan(0)
             .WithMessage("Project Allocation ID must be greater than 0.");
@@ -147,6 +173,24 @@ public class UpdateTaskValidator : AbstractValidator<UpdateTaskDto>
         
         RuleFor(x => x.StudentRemarks)
             .MaximumLength(500)
-            .WithMessage("Student remarks cannot exceed 500 characters.");  
+            .WithMessage("Student remarks cannot exceed 500 characters.");
+        
+        RuleFor(x => x.ProjectAllocationID)
+            .MustAsync(async (projectAllocationID, cancellation) =>
+                await _context.ProjectAllocations
+                    .AnyAsync(x => x.ProjectAllocationID == projectAllocationID, cancellation))
+            .WithMessage("Selected Project Allocation does not exist.");
+        
+        RuleFor(x => x.TaskStatusID)
+            .MustAsync(async (taskStatusID, cancellation) =>
+                await _context.TaskStatuses
+                    .AnyAsync(x => x.TaskStatusID == taskStatusID, cancellation))
+            .WithMessage("Selected Task Status does not exist.");
+        
+        RuleFor(x => x.TaskPriorityID)
+            .MustAsync(async (taskPriorityID, cancellation) =>
+                await _context.TaskPriorities
+                    .AnyAsync(x => x.TaskPriorityID == taskPriorityID, cancellation))
+            .WithMessage("Selected Task Priority does not exist.");
     }
 }
