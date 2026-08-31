@@ -26,83 +26,106 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.Users
-                .Include(u => u.UserType).Select(u => new UserDto
+            try
             {
-                UserID = u.UserID,
-                UserTypeID = u.UserTypeID,
-                FullName = u.FullName,
-                UserCode = u.UserCode,
-                Email = u.Email,
-                MobileNumber = u.MobileNumber,
-                ProfilePicturePath = u.ProfilePicturePath,
-                IsActive = u.IsActive
-            }).ToListAsync();
+                var result = await _context.Users
+                    .Include(u => u.UserType).Select(u => new UserDto
+                    {
+                        UserID = u.UserID,
+                        UserTypeID = u.UserTypeID,
+                        FullName = u.FullName,
+                        UserCode = u.UserCode,
+                        Email = u.Email,
+                        MobileNumber = u.MobileNumber,
+                        ProfilePicturePath = u.ProfilePicturePath,
+                        IsActive = u.IsActive
+                    }).ToListAsync();
 
-            // var result = await _context.Users
-            //     .Join(
-            //         _context.UserTypes,
-            //         user => user.UserTypeID,
-            //         userType => userType.UserTypeID,
-            //         (user, userType) => new
-            //         {
-            //             UserID = user.UserID,
-            //             FullName = user.FullName,
-            //             UserCode = user.UserCode,
-            //             Email = user.Email,
-            //             MobileNumber = user.MobileNumber,
-            //             IsActive = user.IsActive,
-            //             UserTypeID = userType.UserTypeID,
-            //             UserTypeName = userType.UserTypeName,
-            //         }
-            //     ).ToListAsync();
+                // var result = await _context.Users
+                //     .Join(
+                //         _context.UserTypes,
+                //         user => user.UserTypeID,
+                //         userType => userType.UserTypeID,
+                //         (user, userType) => new
+                //         {
+                //             UserID = user.UserID,
+                //             FullName = user.FullName,
+                //             UserCode = user.UserCode,
+                //             Email = user.Email,
+                //             MobileNumber = user.MobileNumber,
+                //             IsActive = user.IsActive,
+                //             UserTypeID = userType.UserTypeID,
+                //             UserTypeName = userType.UserTypeName,
+                //         }
+                //     ).ToListAsync();
 
-            // return Ok(result);
-            return Ok(new ApiResponse<List<UserDto>>
+                // return Ok(result);
+                return Ok(new ApiResponse<List<UserDto>>
+                {
+                    Success = true,
+                    Message = "User Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                Success = true,
-                Message = "User Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Users !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var user = await _context.Users
-                .Include(u => u.UserType)
-                .FirstOrDefaultAsync(u => u.UserID == id);
-            
-            if(user == null)
+            try
             {
-                return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "User Not Found !!",
-                        Errors = new List<string> { $"No user found with Id {id}" }
-                    }
-                );
+                var user = await _context.Users
+                    .Include(u => u.UserType)
+                    .FirstOrDefaultAsync(u => u.UserID == id);
+
+                if (user == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                        {
+                            Success = false,
+                            Message = "User Not Found !!",
+                            Errors = new List<string> { $"No user found with Id {id}" }
+                        }
+                    );
+                }
+
+                var result = new UserDto
+                {
+                    UserID = user.UserID,
+                    UserTypeID = user.UserTypeID,
+                    FullName = user.FullName,
+                    UserCode = user.UserCode,
+                    Email = user.Email,
+                    MobileNumber = user.MobileNumber,
+                    ProfilePicturePath = user.ProfilePicturePath,
+                    IsActive = user.IsActive
+                };
+
+                return Ok(new ApiResponse<UserDto>
+                {
+                    Success = true,
+                    Message = "User Retrieved Successfully !!",
+                    Data = result
+                });
             }
-            
-            var result = new UserDto
+            catch (Exception ex)
             {
-                UserID = user.UserID,
-                UserTypeID = user.UserTypeID,
-                FullName = user.FullName,
-                UserCode = user.UserCode,
-                Email = user.Email,
-                MobileNumber = user.MobileNumber,
-                ProfilePicturePath = user.ProfilePicturePath,
-                IsActive = user.IsActive
-            };
-            
-            
-            return Ok(new ApiResponse<UserDto>
-            {
-                Success = true,
-                Message = "User Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving User !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpPost]
@@ -292,7 +315,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<UserDto>
                 {
                     Success = false,
-                    Message = "Error occurred while deleting user !!",
+                    Message = "Error occurred while deleting User !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -301,64 +324,100 @@ namespace spm_backend.Controllers
         [HttpGet("dropdown")]
         public async Task<IActionResult> GetAllDropDown()
         {
-            var result = await _context.Users
-                .AsNoTracking()
-                .Where(x => x.IsActive)
-                .OrderBy(x => x.FullName)
-                .Select(x => new UserDto
-                {
-                    UserID = x.UserID,
-                    FullName = x.FullName,
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<UserDto>>
+            try
             {
-                Success = true,
-                Message = "Users Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.Users
+                    .AsNoTracking()
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.FullName)
+                    .Select(x => new UserDto
+                    {
+                        UserID = x.UserID,
+                        FullName = x.FullName,
+                    }).ToListAsync();
+
+                return Ok(new ApiResponse<List<UserDto>>
+                {
+                    Success = true,
+                    Message = "Users Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving User Dropdown !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpGet("dropdown/students")]
         public async Task<IActionResult> GetStudentDropDown()
         {
-            var result = await _context.Users
-                .AsNoTracking()
-                .Where(x => x.IsActive && !x.IsDeleted && x.UserType.UserTypeName == "Student")
-                .OrderBy(x => x.FullName)
-                .Select(x => new UserDto
-                {
-                    UserID = x.UserID,
-                    FullName = x.FullName,
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<UserDto>>
+            try
             {
-                Success = true,
-                Message = "Students Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.Users
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && !x.IsDeleted && x.UserType.UserTypeName == "Student")
+                    .OrderBy(x => x.FullName)
+                    .Select(x => new UserDto
+                    {
+                        UserID = x.UserID,
+                        FullName = x.FullName,
+                    }).ToListAsync();
+
+                return Ok(new ApiResponse<List<UserDto>>
+                {
+                    Success = true,
+                    Message = "Students Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Role Dropdown for Students !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpGet("dropdown/faculty")]
         public async Task<IActionResult> GetFacultyDropDown()
         {
-            var result = await _context.Users
-                .AsNoTracking()
-                .Where(x => x.IsActive && !x.IsDeleted && x.UserType.UserTypeName == "Faculty")
-                .OrderBy(x => x.FullName)
-                .Select(x => new UserDto
-                {
-                    UserID = x.UserID,
-                    FullName = x.FullName,
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<UserDto>>
+            try
             {
-                Success = true,
-                Message = "Faculty Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.Users
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && !x.IsDeleted && x.UserType.UserTypeName == "Faculty")
+                    .OrderBy(x => x.FullName)
+                    .Select(x => new UserDto
+                    {
+                        UserID = x.UserID,
+                        FullName = x.FullName,
+                    }).ToListAsync();
+
+                return Ok(new ApiResponse<List<UserDto>>
+                {
+                    Success = true,
+                    Message = "Faculty Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Role Dropdown for Faculty !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }

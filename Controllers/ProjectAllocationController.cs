@@ -26,81 +26,105 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.ProjectAllocations
-                .Include(pa => pa.ProjectMaster)
-                .Include(pa => pa.UserStudent)
-                .Include(pa => pa.UserFaculty)
-                .Select(pa => new ProjectAllocationDto
-                {
-                    ProjectAllocationID = pa.ProjectAllocationID,
-                    ProjectID = pa.ProjectID,
-                    ProjectTitle = pa.ProjectMaster.ProjectTitle,
-                    StudentID = pa.StudentID,
-                    StudentName = pa.UserStudent.FullName,
-                    FacultyID = pa.FacultyID,
-                    FacultyName = pa.UserFaculty.FullName,
-                    AssignedDate = pa.AssignedDate,
-                    ProjectStartDate = pa.ProjectStartDate,
-                    ProjectEndDate = pa.ProjectEndDate,
-                    TotalTasksGiven = pa.TotalTasksGiven,
-                    TotalCompletedTasks = pa.TotalCompletedTasks,
-                    ProgressPercentage = pa.ProgressPercentage,
-                    OverAllGrade = pa.OverAllGrade,
-                    IsActive = pa.IsActive
-                }).ToListAsync();
-            
-            return Ok(new ApiResponse<List<ProjectAllocationDto>>
+            try
             {
-                Success = true,
-                Message = "Project Allocations Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.ProjectAllocations
+                    .Include(pa => pa.ProjectMaster)
+                    .Include(pa => pa.UserStudent)
+                    .Include(pa => pa.UserFaculty)
+                    .Select(pa => new ProjectAllocationDto
+                    {
+                        ProjectAllocationID = pa.ProjectAllocationID,
+                        ProjectID = pa.ProjectID,
+                        ProjectTitle = pa.ProjectMaster.ProjectTitle,
+                        StudentID = pa.StudentID,
+                        StudentName = pa.UserStudent.FullName,
+                        FacultyID = pa.FacultyID,
+                        FacultyName = pa.UserFaculty.FullName,
+                        AssignedDate = pa.AssignedDate,
+                        ProjectStartDate = pa.ProjectStartDate,
+                        ProjectEndDate = pa.ProjectEndDate,
+                        TotalTasksGiven = pa.TotalTasksGiven,
+                        TotalCompletedTasks = pa.TotalCompletedTasks,
+                        ProgressPercentage = pa.ProgressPercentage,
+                        OverAllGrade = pa.OverAllGrade,
+                        IsActive = pa.IsActive
+                    }).ToListAsync();
+                
+                return Ok(new ApiResponse<List<ProjectAllocationDto>>
+                {
+                    Success = true,
+                    Message = "Project Allocations Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Project Allocations !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var projectAllocation = await _context.ProjectAllocations
-                .Include(pa => pa.ProjectMaster)
-                .Include(pa => pa.UserStudent)
-                .Include(pa => pa.UserFaculty)
-                .FirstOrDefaultAsync(pa => pa.ProjectAllocationID == id);
-            
-            if (projectAllocation == null)
+            try
             {
-                return NotFound(new ApiResponse<object>
+                var projectAllocation = await _context.ProjectAllocations
+                    .Include(pa => pa.ProjectMaster)
+                    .Include(pa => pa.UserStudent)
+                    .Include(pa => pa.UserFaculty)
+                    .FirstOrDefaultAsync(pa => pa.ProjectAllocationID == id);
+                
+                if (projectAllocation == null)
                 {
-                    Success = false,
-                    Message = "Project Allocation Not Fount !!",
-                    Errors = new List<string> { $"No project allocation found with Id {id}" }
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Project Allocation Not Fount !!",
+                        Errors = new List<string> { $"No project allocation found with Id {id}" }
+                    });
+                }
+                
+                var result = new ProjectAllocationDto
+                {
+                    ProjectAllocationID = projectAllocation.ProjectAllocationID,
+                    ProjectID = projectAllocation.ProjectID,
+                    ProjectTitle = projectAllocation.ProjectMaster.ProjectTitle,
+                    StudentID = projectAllocation.StudentID,
+                    StudentName = projectAllocation.UserStudent.FullName,
+                    FacultyID = projectAllocation.FacultyID,
+                    FacultyName = projectAllocation.UserFaculty.FullName,
+                    AssignedDate = projectAllocation.AssignedDate,
+                    ProjectStartDate = projectAllocation.ProjectStartDate,
+                    ProjectEndDate = projectAllocation.ProjectEndDate,
+                    TotalTasksGiven = projectAllocation.TotalTasksGiven,
+                    TotalCompletedTasks = projectAllocation.TotalCompletedTasks,
+                    ProgressPercentage = projectAllocation.ProgressPercentage,
+                    OverAllGrade = projectAllocation.OverAllGrade,
+                    IsActive = projectAllocation.IsActive
+                };
+                
+                return Ok(new ApiResponse<ProjectAllocationDto>
+                {
+                    Success = true,
+                    Message = "Project Allocation Retrieved Successfully !!",
+                    Data = result
                 });
             }
-            
-            var result = new ProjectAllocationDto
+            catch (Exception ex)
             {
-                ProjectAllocationID = projectAllocation.ProjectAllocationID,
-                ProjectID = projectAllocation.ProjectID,
-                ProjectTitle = projectAllocation.ProjectMaster.ProjectTitle,
-                StudentID = projectAllocation.StudentID,
-                StudentName = projectAllocation.UserStudent.FullName,
-                FacultyID = projectAllocation.FacultyID,
-                FacultyName = projectAllocation.UserFaculty.FullName,
-                AssignedDate = projectAllocation.AssignedDate,
-                ProjectStartDate = projectAllocation.ProjectStartDate,
-                ProjectEndDate = projectAllocation.ProjectEndDate,
-                TotalTasksGiven = projectAllocation.TotalTasksGiven,
-                TotalCompletedTasks = projectAllocation.TotalCompletedTasks,
-                ProgressPercentage = projectAllocation.ProgressPercentage,
-                OverAllGrade = projectAllocation.OverAllGrade,
-                IsActive = projectAllocation.IsActive
-            };
-            
-            return Ok(new ApiResponse<ProjectAllocationDto>
-            {
-                Success = true,
-                Message = "Project Allocation Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Project Allocation !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpPost]
@@ -320,7 +344,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<ProjectAllocationDto>
                 {
                     Success = false,
-                    Message = "Error occurred while updating project allocation !!",
+                    Message = "Error occurred while updating Project Allocation !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -357,7 +381,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<ProjectAllocationDto>
                 {
                     Success = false,
-                    Message = "Error occurred while deleting project allocation !!",
+                    Message = "Error occurred while deleting Project Allocation !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -366,23 +390,35 @@ namespace spm_backend.Controllers
         [HttpGet("dropdown")]
         public async Task<IActionResult> GetAllDropDown()
         {
-            var result = await _context.ProjectAllocations
-                .AsNoTracking()
-                .OrderBy(x => x.ProjectMaster.ProjectTitle)
-                .Select(x => new ProjectAllocationDto
-                {
-                    ProjectAllocationID = x.ProjectAllocationID,
-                    ProjectTitle = x.ProjectMaster.ProjectTitle,
-                    StudentName = x.UserStudent.FullName,
-                    FacultyName = x.UserFaculty.FullName
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<ProjectAllocationDto>>
+            try
             {
-                Success = true,
-                Message = "Project Allocations Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.ProjectAllocations
+                    .AsNoTracking()
+                    .OrderBy(x => x.ProjectMaster.ProjectTitle)
+                    .Select(x => new ProjectAllocationDto
+                    {
+                        ProjectAllocationID = x.ProjectAllocationID,
+                        ProjectTitle = x.ProjectMaster.ProjectTitle,
+                        StudentName = x.UserStudent.FullName,
+                        FacultyName = x.UserFaculty.FullName
+                    }).ToListAsync();
+                    
+                return Ok(new ApiResponse<List<ProjectAllocationDto>>
+                {
+                    Success = true,
+                    Message = "Project Allocations Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Project Allocation Dropdown !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }

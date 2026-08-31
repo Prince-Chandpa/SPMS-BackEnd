@@ -26,92 +26,116 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.Tasks
-                .Include(t => t.ProjectAllocation)
-                .ThenInclude(pa => pa.ProjectMaster)
-                .Include(t => t.TaskStatus)
-                .Include(t => t.TaskPriority).Select(t => new TaskDto
-                {
-                    TaskID = t.TaskID,
-                    ProjectAllocationID = t.ProjectAllocationID,
-                    ProjectTitle = t.ProjectAllocation.ProjectMaster.ProjectTitle,
-                    TaskStatusID = t.TaskStatusID,
-                    TaskStatusName = t.TaskStatus.TaskStatusName,
-                    TaskPriorityID = t.TaskPriorityID,
-                    TaskPriorityName = t.TaskPriority.TaskPriorityName,
-                    TaskTitle = t.TaskTitle,
-                    TaskDescription = t.TaskDescription,
-                    AssignedScore = t.AssignedScore,
-                    EarnedScore = t.EarnedScore,
-                    ProgressPercentage = t.ProgressPercentage,
-                    TaskAssignedDate = t.TaskAssignedDate,
-                    TaskStartDate = t.TaskStartDate,
-                    TaskDueDate = t.TaskDueDate,
-                    TaskCompletedDate = t.TaskCompletedDate,
-                    NextFollowUpDate = t.NextFollowUpDate,
-                    FacultyRemarks = t.FacultyRemarks,
-                    StudentRemarks = t.StudentRemarks,
-                    IsActive = t.IsActive
-                }).ToListAsync();
-            
-            return Ok(new ApiResponse<List<TaskDto>>
+            try
             {
-                Success = true,
-                Message = "Task Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.Tasks
+                    .Include(t => t.ProjectAllocation)
+                    .ThenInclude(pa => pa.ProjectMaster)
+                    .Include(t => t.TaskStatus)
+                    .Include(t => t.TaskPriority).Select(t => new TaskDto
+                    {
+                        TaskID = t.TaskID,
+                        ProjectAllocationID = t.ProjectAllocationID,
+                        ProjectTitle = t.ProjectAllocation.ProjectMaster.ProjectTitle,
+                        TaskStatusID = t.TaskStatusID,
+                        TaskStatusName = t.TaskStatus.TaskStatusName,
+                        TaskPriorityID = t.TaskPriorityID,
+                        TaskPriorityName = t.TaskPriority.TaskPriorityName,
+                        TaskTitle = t.TaskTitle,
+                        TaskDescription = t.TaskDescription,
+                        AssignedScore = t.AssignedScore,
+                        EarnedScore = t.EarnedScore,
+                        ProgressPercentage = t.ProgressPercentage,
+                        TaskAssignedDate = t.TaskAssignedDate,
+                        TaskStartDate = t.TaskStartDate,
+                        TaskDueDate = t.TaskDueDate,
+                        TaskCompletedDate = t.TaskCompletedDate,
+                        NextFollowUpDate = t.NextFollowUpDate,
+                        FacultyRemarks = t.FacultyRemarks,
+                        StudentRemarks = t.StudentRemarks,
+                        IsActive = t.IsActive
+                    }).ToListAsync();
+                
+                return Ok(new ApiResponse<List<TaskDto>>
+                {
+                    Success = true,
+                    Message = "Task Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Tasks !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
        
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var task = await _context.Tasks
-                .Include(t => t.ProjectAllocation)
-                .ThenInclude(pa => pa.ProjectMaster)
-                .Include(t => t.TaskStatus)
-                .Include(t => t.TaskPriority)
-                .FirstOrDefaultAsync(t => t.TaskID == id);
-            
-            if (task == null)
+            try
             {
-                return NotFound(new ApiResponse<object>
+                var task = await _context.Tasks
+                    .Include(t => t.ProjectAllocation)
+                    .ThenInclude(pa => pa.ProjectMaster)
+                    .Include(t => t.TaskStatus)
+                    .Include(t => t.TaskPriority)
+                    .FirstOrDefaultAsync(t => t.TaskID == id);
+                
+                if (task == null)
                 {
-                    Success = false,
-                    Message = "Task Not Found !!",
-                    Errors = new List<string> { $"No task found with Id {id}" }
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Task Not Found !!",
+                        Errors = new List<string> { $"No task found with Id {id}" }
+                    });
+                }
+                
+                var result = new TaskDto
+                {
+                    TaskID = task.TaskID,
+                    ProjectAllocationID = task.ProjectAllocationID,
+                    ProjectTitle = task.ProjectAllocation.ProjectMaster.ProjectTitle,
+                    TaskStatusID = task.TaskStatusID,
+                    TaskStatusName = task.TaskStatus.TaskStatusName,
+                    TaskPriorityID = task.TaskPriorityID,
+                    TaskPriorityName = task.TaskPriority.TaskPriorityName,
+                    TaskTitle = task.TaskTitle,
+                    TaskDescription = task.TaskDescription,
+                    AssignedScore = task.AssignedScore,
+                    EarnedScore = task.EarnedScore,
+                    ProgressPercentage = task.ProgressPercentage,
+                    TaskAssignedDate = task.TaskAssignedDate,
+                    TaskStartDate = task.TaskStartDate,
+                    TaskDueDate = task.TaskDueDate,
+                    TaskCompletedDate = task.TaskCompletedDate,
+                    NextFollowUpDate = task.NextFollowUpDate,
+                    FacultyRemarks = task.FacultyRemarks,
+                    StudentRemarks = task.StudentRemarks,
+                    IsActive = task.IsActive
+                };
+                
+                return Ok(new ApiResponse<TaskDto>
+                {
+                    Success = true,
+                    Message = "Task Retrieved Successfully !!",
+                    Data = result
                 });
             }
-            
-            var result = new TaskDto
+            catch (Exception ex)
             {
-                TaskID = task.TaskID,
-                ProjectAllocationID = task.ProjectAllocationID,
-                ProjectTitle = task.ProjectAllocation.ProjectMaster.ProjectTitle,
-                TaskStatusID = task.TaskStatusID,
-                TaskStatusName = task.TaskStatus.TaskStatusName,
-                TaskPriorityID = task.TaskPriorityID,
-                TaskPriorityName = task.TaskPriority.TaskPriorityName,
-                TaskTitle = task.TaskTitle,
-                TaskDescription = task.TaskDescription,
-                AssignedScore = task.AssignedScore,
-                EarnedScore = task.EarnedScore,
-                ProgressPercentage = task.ProgressPercentage,
-                TaskAssignedDate = task.TaskAssignedDate,
-                TaskStartDate = task.TaskStartDate,
-                TaskDueDate = task.TaskDueDate,
-                TaskCompletedDate = task.TaskCompletedDate,
-                NextFollowUpDate = task.NextFollowUpDate,
-                FacultyRemarks = task.FacultyRemarks,
-                StudentRemarks = task.StudentRemarks,
-                IsActive = task.IsActive
-            };
-            
-            return Ok(new ApiResponse<TaskDto>
-            {
-                Success = true,
-                Message = "Task Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Task !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpPost]
@@ -393,7 +417,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<TaskDto>
                 {
                     Success = false,
-                    Message = "Error occurred while deleting task !!",
+                    Message = "Error occurred while deleting Task !!",
                     Errors = new List<string> { ex.Message }
                 });
             }

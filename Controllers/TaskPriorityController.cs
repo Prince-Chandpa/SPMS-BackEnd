@@ -26,51 +26,75 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.TaskPriorities.Select(tp => new TaskPriorityDto
+            try
             {
-                TaskPriorityID = tp.TaskPriorityID,
-                TaskPriorityName = tp.TaskPriorityName,
-                TaskPriorityCssClass = tp.TaskPriorityCssClass,
-                IsActive = tp.IsActive
-            }).ToListAsync();
-            
-            return Ok(new ApiResponse<List<TaskPriorityDto>>
+                var result = await _context.TaskPriorities.Select(tp => new TaskPriorityDto
+                {
+                    TaskPriorityID = tp.TaskPriorityID,
+                    TaskPriorityName = tp.TaskPriorityName,
+                    TaskPriorityCssClass = tp.TaskPriorityCssClass,
+                    IsActive = tp.IsActive
+                }).ToListAsync();
+                
+                return Ok(new ApiResponse<List<TaskPriorityDto>>
+                {
+                    Success = true,
+                    Message = "Task Priorities Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                Success = true,
-                Message = "Task Priorities Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Task Priorities !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var taskPriority = await _context.TaskPriorities.FindAsync(id);
-
-            if (taskPriority == null)
+            try
             {
-                return NotFound(new ApiResponse<object>
+                var taskPriority = await _context.TaskPriorities.FindAsync(id);
+
+                if (taskPriority == null)
                 {
-                    Success = false,
-                    Message = "Task Priority Not Found !!",
-                    Errors = new List<string> { $"No task priority found with Id {id}" }
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Task Priority Not Found !!",
+                        Errors = new List<string> { $"No task priority found with Id {id}" }
+                    });
+                }
+
+                var result = new TaskPriorityDto
+                {
+                    TaskPriorityID = taskPriority.TaskPriorityID,
+                    TaskPriorityName = taskPriority.TaskPriorityName,
+                    TaskPriorityCssClass = taskPriority.TaskPriorityCssClass,
+                    IsActive = taskPriority.IsActive
+                };
+
+                return Ok(new ApiResponse<TaskPriorityDto>
+                {
+                    Success = true,
+                    Message = "Task Priority Retrieved Successfully !!",
+                    Data = result
                 });
             }
-
-            var result = new TaskPriorityDto
+            catch (Exception ex)
             {
-                TaskPriorityID = taskPriority.TaskPriorityID,
-                TaskPriorityName = taskPriority.TaskPriorityName,
-                TaskPriorityCssClass = taskPriority.TaskPriorityCssClass,
-                IsActive = taskPriority.IsActive
-            };
-
-            return Ok(new ApiResponse<TaskPriorityDto>
-            {
-                Success = true,
-                Message = "Task Priority Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Task Priority !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpPost]
@@ -187,7 +211,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occurred while updating task priority !!",
+                    Message = "Error occurred while updating Task Priority !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -224,7 +248,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occurred while deleting task priority !!",
+                    Message = "Error occurred while deleting Task Priority !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -233,21 +257,33 @@ namespace spm_backend.Controllers
         [HttpGet("dropdown")]
         public async Task<IActionResult> GetAllDropDown()
         {
-            var result = await _context.TaskPriorities
-                .AsNoTracking()
-                .OrderBy(x => x.TaskPriorityName)
-                .Select(x => new TaskPriorityDto
-                {
-                    TaskPriorityID = x.TaskPriorityID,
-                    TaskPriorityName = x.TaskPriorityName,
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<TaskPriorityDto>>
+            try
             {
-                Success = true,
-                Message = "Task Priorities Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.TaskPriorities
+                    .AsNoTracking()
+                    .OrderBy(x => x.TaskPriorityName)
+                    .Select(x => new TaskPriorityDto
+                    {
+                        TaskPriorityID = x.TaskPriorityID,
+                        TaskPriorityName = x.TaskPriorityName,
+                    }).ToListAsync();
+                    
+                return Ok(new ApiResponse<List<TaskPriorityDto>>
+                {
+                    Success = true,
+                    Message = "Task Priorities Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Task Priority Dropdown !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }

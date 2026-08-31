@@ -14,64 +14,88 @@ namespace spm_backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IValidator<CreateRoleDto> _createValidator;
-        private readonly IValidator<UpdateRoleDto> _updateValiator;
+        private readonly IValidator<UpdateRoleDto> _updateValidator;
         
-        public RoleController(AppDbContext context, IValidator<CreateRoleDto> createValidator, IValidator<UpdateRoleDto> updateValiator)
+        public RoleController(AppDbContext context, IValidator<CreateRoleDto> createValidator, IValidator<UpdateRoleDto> updateValidator)
         {
             _context = context;
             _createValidator = createValidator;
-            _updateValiator = updateValiator;
+            _updateValidator = updateValidator;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.Roles.Select(r => new RoleDto
+            try
             {
-                RoleID = r.RoleID,
-                RoleName = r.RoleName,
-                Description = r.Description,
-                IsActive = r.IsActive
-            }).ToListAsync();
+                var result = await _context.Roles.Select(r => new RoleDto
+                {
+                    RoleID = r.RoleID,
+                    RoleName = r.RoleName,
+                    Description = r.Description,
+                    IsActive = r.IsActive
+                }).ToListAsync();
             
-            return Ok(new ApiResponse<List<RoleDto>>
+                return Ok(new ApiResponse<List<RoleDto>>
+                {
+                    Success = true,
+                    Message = "Role Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                Success = true,
-                Message = "Role Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Roles !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var role = await _context.Roles.FindAsync(id);
-            
-            if(role == null)
+            try
             {
-                return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Role Not Found !!",
-                        Errors = new List<string> { $"No role found with Id {id}" }
-                    }
-                );
+                var role = await _context.Roles.FindAsync(id);
+
+                if (role == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                        {
+                            Success = false,
+                            Message = "Role Not Found !!",
+                            Errors = new List<string> { $"No role found with Id {id}" }
+                        }
+                    );
+                }
+
+                var result = new RoleDto
+                {
+                    RoleID = role.RoleID,
+                    RoleName = role.RoleName,
+                    Description = role.Description,
+                    IsActive = role.IsActive
+                };
+
+                return Ok(new ApiResponse<RoleDto>
+                {
+                    Success = true,
+                    Message = "Role Retrieved Successfully !!",
+                    Data = result
+                });
             }
-            
-            var result = new RoleDto
+            catch (Exception ex)
             {
-                RoleID = role.RoleID,
-                RoleName = role.RoleName,
-                Description = role.Description,
-                IsActive = role.IsActive
-            };
-            
-            return Ok(new ApiResponse<RoleDto>
-            {
-                Success = true,
-                Message = "Role Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Role !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpPost]
@@ -124,7 +148,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occurred while creating role !!",
+                    Message = "Error occurred while creating Role !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -135,7 +159,7 @@ namespace spm_backend.Controllers
         {
             try
             {
-                var validator = await _updateValiator.ValidateAsync(dto);
+                var validator = await _updateValidator.ValidateAsync(dto);
                 
                 if (!validator.IsValid)
                 {
@@ -185,7 +209,7 @@ namespace spm_backend.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<RoleDto>
+                return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
                     Message = "Error occurred while updating Role !!",
@@ -222,7 +246,7 @@ namespace spm_backend.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new ApiResponse<RoleDto>
+                return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
                     Message = "Error occurred while deleting Role !!",
@@ -234,21 +258,33 @@ namespace spm_backend.Controllers
         [HttpGet("dropdown")]
         public async Task<IActionResult> GetAllDropDown()
         {
-            var result = await _context.Roles
-                .AsNoTracking()
-                .OrderBy(x => x.RoleName)
-                .Select(x => new RoleDto
-                {
-                    RoleID = x.RoleID,
-                    RoleName = x.RoleName,
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<RoleDto>>
+            try
             {
-                Success = true,
-                Message = "Role Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.Roles
+                    .AsNoTracking()
+                    .OrderBy(x => x.RoleName)
+                    .Select(x => new RoleDto
+                    {
+                        RoleID = x.RoleID,
+                        RoleName = x.RoleName,
+                    }).ToListAsync();
+                    
+                return Ok(new ApiResponse<List<RoleDto>>
+                {
+                    Success = true,
+                    Message = "Role Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Role Dropdown !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }

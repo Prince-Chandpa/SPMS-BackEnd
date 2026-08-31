@@ -26,52 +26,76 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.UserTypes.Select(ut => new UserTypeDto
+            try
             {
-                UserTypeID = ut.UserTypeID,
-                UserTypeName = ut.UserTypeName,
-                Description = ut.Description,
-                IsActive = ut.IsActive
-            }).ToListAsync();
-            
-            return Ok(new ApiResponse<List<UserTypeDto>>
+                var result = await _context.UserTypes.Select(ut => new UserTypeDto
+                {
+                    UserTypeID = ut.UserTypeID,
+                    UserTypeName = ut.UserTypeName,
+                    Description = ut.Description,
+                    IsActive = ut.IsActive
+                }).ToListAsync();
+                
+                return Ok(new ApiResponse<List<UserTypeDto>>
+                {
+                    Success = true,
+                    Message = "User Type Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                Success = true,
-                Message = "User Type Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving User Types !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var userType = await _context.UserTypes.FindAsync(id);
-            
-            if(userType == null)
+            try
             {
-                return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "User Type Not Found !!",
-                        Errors = new List<string> { $"No user type found with Id {id}" }
-                    }
-                );
-            }
+                var userType = await _context.UserTypes.FindAsync(id);
+                
+                if(userType == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                        {
+                            Success = false,
+                            Message = "User Type Not Found !!",
+                            Errors = new List<string> { $"No user type found with Id {id}" }
+                        }
+                    );
+                }
 
-            var result = new UserTypeDto
+                var result = new UserTypeDto
+                {
+                    UserTypeID = userType.UserTypeID,
+                    UserTypeName = userType.UserTypeName,
+                    Description = userType.Description,
+                    IsActive = userType.IsActive
+                };
+                
+                return Ok(new ApiResponse<UserTypeDto>
+                {
+                    Success = true,
+                    Message = "User Type Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                UserTypeID = userType.UserTypeID,
-                UserTypeName = userType.UserTypeName,
-                Description = userType.Description,
-                IsActive = userType.IsActive
-            };
-            
-            return Ok(new ApiResponse<UserTypeDto>
-            {
-                Success = true,
-                Message = "User Type Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving User Type !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpPost]
@@ -124,7 +148,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occurred while creating user type !!",
+                    Message = "Error occurred while creating User Type !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -234,22 +258,34 @@ namespace spm_backend.Controllers
         [HttpGet("dropdown")]
         public async Task<IActionResult> GetAllDropDown()
         {
-            var result = await _context.UserTypes
-                .AsNoTracking()
-                .Where(x => x.IsActive)
-                .OrderBy(x => x.UserTypeName)
-                .Select(x => new UserTypeDto
-                {
-                    UserTypeID = x.UserTypeID,
-                    UserTypeName = x.UserTypeName,
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<UserTypeDto>>
+            try
             {
-                Success = true,
-                Message = "User Type Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.UserTypes
+                    .AsNoTracking()
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.UserTypeName)
+                    .Select(x => new UserTypeDto
+                    {
+                        UserTypeID = x.UserTypeID,
+                        UserTypeName = x.UserTypeName,
+                    }).ToListAsync();
+                    
+                return Ok(new ApiResponse<List<UserTypeDto>>
+                {
+                    Success = true,
+                    Message = "User Type Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving User Type Dropdown !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }

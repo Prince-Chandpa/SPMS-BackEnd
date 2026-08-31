@@ -26,61 +26,85 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.UserRoles
-                .Include(ur => ur.User)
-                .Include(ur => ur.Role)
-                .Select(ur => new UserRoleDto
-                {
-                    RolePermissionID = ur.RolePermissionID,
-                    RoleID = ur.RoleID,
-                    RoleName = ur.Role.RoleName ?? string.Empty,
-                    UserID = ur.UserID,
-                    UserName = ur.User.FullName ?? string.Empty
-                })
-                .ToListAsync();
-
-            return Ok(new ApiResponse<List<UserRoleDto>>
+            try
             {
-                Success = true,
-                Message = "User Role Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.UserRoles
+                    .Include(ur => ur.User)
+                    .Include(ur => ur.Role)
+                    .Select(ur => new UserRoleDto
+                    {
+                        RolePermissionID = ur.RolePermissionID,
+                        RoleID = ur.RoleID,
+                        RoleName = ur.Role.RoleName ?? string.Empty,
+                        UserID = ur.UserID,
+                        UserName = ur.User.FullName ?? string.Empty
+                    })
+                    .ToListAsync();
+
+                return Ok(new ApiResponse<List<UserRoleDto>>
+                {
+                    Success = true,
+                    Message = "User Role Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving User Roles !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var userRole = await _context.UserRoles
-                .Include(ur => ur.User)
-                .Include(ur => ur.Role)
-                .FirstOrDefaultAsync(ur => ur.RolePermissionID == id);
-
-            if (userRole == null)
+            try
             {
-                return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "User Role Not Found !!",
-                        Errors = new List<string> { $"No user role found with Id {id}" }
-                    }
-                );
+                var userRole = await _context.UserRoles
+                    .Include(ur => ur.User)
+                    .Include(ur => ur.Role)
+                    .FirstOrDefaultAsync(ur => ur.RolePermissionID == id);
+
+                if (userRole == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                        {
+                            Success = false,
+                            Message = "User Role Not Found !!",
+                            Errors = new List<string> { $"No user role found with Id {id}" }
+                        }
+                    );
+                }
+                
+                var result = new UserRoleDto
+                {
+                    RolePermissionID = userRole.RolePermissionID,
+                    RoleID = userRole.RoleID,
+                    RoleName = userRole.Role?.RoleName ?? string.Empty,
+                    UserID = userRole.UserID,
+                    UserName = userRole.User?.FullName ?? string.Empty
+                };
+
+                return Ok(new ApiResponse<UserRoleDto>
+                {
+                    Success = true,
+                    Message = "User Role Retrieved Successfully !!",
+                    Data = result
+                });
             }
-            
-            var result = new UserRoleDto
+            catch (Exception ex)
             {
-                RolePermissionID = userRole.RolePermissionID,
-                RoleID = userRole.RoleID,
-                RoleName = userRole.Role?.RoleName ?? string.Empty,
-                UserID = userRole.UserID,
-                UserName = userRole.User?.FullName ?? string.Empty
-            };
-
-            return Ok(new ApiResponse<UserRoleDto>
-            {
-                Success = true,
-                Message = "User Role Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving User Role !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpPost]
@@ -160,7 +184,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occurred while creating user role !!",
+                    Message = "Error occurred while creating User Role !!",
                     Errors = new List<string> { ex.Message }
                 });
             }

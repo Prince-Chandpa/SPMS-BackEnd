@@ -26,51 +26,75 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.TaskStatuses.Select(ts => new TaskStatusDto
+            try
             {
-                TaskStatusID = ts.TaskStatusID,
-                TaskStatusName = ts.TaskStatusName,
-                TaskStatusCssClass = ts.TaskStatusCssClass,
-                IsActive = ts.IsActive
-            }).ToListAsync();
-            
-            return Ok(new ApiResponse<List<TaskStatusDto>>
+                var result = await _context.TaskStatuses.Select(ts => new TaskStatusDto
+                {
+                    TaskStatusID = ts.TaskStatusID,
+                    TaskStatusName = ts.TaskStatusName,
+                    TaskStatusCssClass = ts.TaskStatusCssClass,
+                    IsActive = ts.IsActive
+                }).ToListAsync();
+                
+                return Ok(new ApiResponse<List<TaskStatusDto>>
+                {
+                    Success = true,
+                    Message = "Task Statuses Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                Success = true,
-                Message = "Task Statuses Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Task Statuses !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var taskStatus = await _context.TaskStatuses.FindAsync(id);
-            
-            if(taskStatus == null)
-            { 
-                return NotFound(new ApiResponse<object>
+            try
+            {
+                var taskStatus = await _context.TaskStatuses.FindAsync(id);
+                
+                if(taskStatus == null)
+                { 
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Task Status Not Found !!",
+                        Errors = new List<string> { $"No task status found with Id {id}" }
+                    });
+                }
+                
+                var result = new TaskStatusDto
                 {
-                    Success = false,
-                    Message = "Task Status Not Found !!",
-                    Errors = new List<string> { $"No task status found with Id {id}" }
+                    TaskStatusID = taskStatus.TaskStatusID,
+                    TaskStatusName = taskStatus.TaskStatusName,
+                    TaskStatusCssClass = taskStatus.TaskStatusCssClass,
+                    IsActive = taskStatus.IsActive
+                };
+                
+                return Ok(new ApiResponse<TaskStatusDto>
+                {
+                    Success = true,
+                    Message = "Task Status Retrieved Successfully !!",
+                    Data = result
                 });
             }
-            
-            var result = new TaskStatusDto
+            catch (Exception ex)
             {
-                TaskStatusID = taskStatus.TaskStatusID,
-                TaskStatusName = taskStatus.TaskStatusName,
-                TaskStatusCssClass = taskStatus.TaskStatusCssClass,
-                IsActive = taskStatus.IsActive
-            };
-            
-            return Ok(new ApiResponse<TaskStatusDto>
-            {
-                Success = true,
-                Message = "Task Status Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Task Status !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpPost]
@@ -187,7 +211,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occurred while updating task status !!",
+                    Message = "Error occurred while updating Task Status !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -224,7 +248,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occurred while deleting task status !!",
+                    Message = "Error occurred while deleting Task Status !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -233,21 +257,33 @@ namespace spm_backend.Controllers
         [HttpGet("dropdown")]
         public async Task<IActionResult> GetAllDropDown()
         {
-            var result = await _context.TaskStatuses
-                .AsNoTracking()
-                .OrderBy(x => x.TaskStatusName)
-                .Select(x => new TaskStatusDto
-                {
-                    TaskStatusID = x.TaskStatusID,
-                    TaskStatusName = x.TaskStatusName,
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<TaskStatusDto>>
+            try
             {
-                Success = true,
-                Message = "Task Statuses Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.TaskStatuses
+                    .AsNoTracking()
+                    .OrderBy(x => x.TaskStatusName)
+                    .Select(x => new TaskStatusDto
+                    {
+                        TaskStatusID = x.TaskStatusID,
+                        TaskStatusName = x.TaskStatusName,
+                    }).ToListAsync();
+                    
+                return Ok(new ApiResponse<List<TaskStatusDto>>
+                {
+                    Success = true,
+                    Message = "Task Statuses Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Task Status Dropdown !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }

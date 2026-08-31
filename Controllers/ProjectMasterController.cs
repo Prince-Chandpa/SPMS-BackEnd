@@ -26,51 +26,75 @@ namespace spm_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _context.ProjectMasters.Select(pm => new ProjectMasterDto
+            try
             {
-                ProjectMasterID = pm.ProjectMasterID,
-                ProjectTitle = pm.ProjectTitle,
-                Description = pm.Description,
-                IsActive = pm.IsActive
-            }).ToListAsync();
-            
-            return Ok(new ApiResponse<List<ProjectMasterDto>>
+                var result = await _context.ProjectMasters.Select(pm => new ProjectMasterDto
+                {
+                    ProjectMasterID = pm.ProjectMasterID,
+                    ProjectTitle = pm.ProjectTitle,
+                    Description = pm.Description,
+                    IsActive = pm.IsActive
+                }).ToListAsync();
+                
+                return Ok(new ApiResponse<List<ProjectMasterDto>>
+                {
+                    Success = true,
+                    Message = "Project Master Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
-                Success = true,
-                Message = "Project Master Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Project Masters !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var projectMaster = await _context.ProjectMasters.FindAsync(id);
-            
-            if(projectMaster == null)
+            try
             {
-                return NotFound(new ApiResponse<object>
+                var projectMaster = await _context.ProjectMasters.FindAsync(id);
+                
+                if(projectMaster == null)
                 {
-                    Success = false,
-                    Message = "Project Master Not Found !!",
-                    Errors = new List<string> { $"No project master found with Id {id}" }
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Project Master Not Found !!",
+                        Errors = new List<string> { $"No project master found with Id {id}" }
+                    });
+                }
+                
+                var result = new ProjectMasterDto
+                {
+                    ProjectMasterID = projectMaster.ProjectMasterID,
+                    ProjectTitle = projectMaster.ProjectTitle,
+                    Description = projectMaster.Description,
+                    IsActive = projectMaster.IsActive
+                };
+                
+                return Ok(new ApiResponse<ProjectMasterDto>
+                {
+                    Success = true,
+                    Message = "Project Master Retrieved Successfully !!",
+                    Data = result
                 });
             }
-            
-            var result = new ProjectMasterDto
+            catch (Exception ex)
             {
-                ProjectMasterID = projectMaster.ProjectMasterID,
-                ProjectTitle = projectMaster.ProjectTitle,
-                Description = projectMaster.Description,
-                IsActive = projectMaster.IsActive
-            };
-            
-            return Ok(new ApiResponse<ProjectMasterDto>
-            {
-                Success = true,
-                Message = "Project Master Retrieved Successfully !!",
-                Data = result
-            });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Project Allocation !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
         
         [HttpPost]
@@ -187,7 +211,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<ProjectMasterDto>
                 {
                     Success = false,
-                    Message = "Error occurred while updating project master !!",
+                    Message = "Error occurred while updating Project Master !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -224,7 +248,7 @@ namespace spm_backend.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error occurred while deleting project master !!",
+                    Message = "Error occurred while deleting Project Master !!",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -233,21 +257,33 @@ namespace spm_backend.Controllers
         [HttpGet("dropdown")]
         public async Task<IActionResult> GetAllDropDown()
         {
-            var result = await _context.ProjectMasters
-                .AsNoTracking()
-                .OrderBy(x => x.ProjectTitle)
-                .Select(x => new ProjectMasterDto
-                {
-                    ProjectMasterID = x.ProjectMasterID,
-                    ProjectTitle = x.ProjectTitle,
-                }).ToListAsync();
-                
-            return Ok(new ApiResponse<List<ProjectMasterDto>>
+            try
             {
-                Success = true,
-                Message = "Project Retrieved Successfully !!",
-                Data = result
-            });
+                var result = await _context.ProjectMasters
+                    .AsNoTracking()
+                    .OrderBy(x => x.ProjectTitle)
+                    .Select(x => new ProjectMasterDto
+                    {
+                        ProjectMasterID = x.ProjectMasterID,
+                        ProjectTitle = x.ProjectTitle,
+                    }).ToListAsync();
+                    
+                return Ok(new ApiResponse<List<ProjectMasterDto>>
+                {
+                    Success = true,
+                    Message = "Project Retrieved Successfully !!",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error occurred while retrieving Project Master Dropdown !!",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
         }
     }
 }
