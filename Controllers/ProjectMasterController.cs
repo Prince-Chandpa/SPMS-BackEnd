@@ -99,6 +99,7 @@ namespace spm_backend.Controllers
             }
         }
         
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateProjectMasterDto dto)
         {
@@ -155,6 +156,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateProjectMasterDto dto)
         {
@@ -219,6 +221,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {

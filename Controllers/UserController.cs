@@ -12,7 +12,7 @@ namespace spm_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles="Admin")]
     public class UserController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -35,7 +35,8 @@ namespace spm_backend.Controllers
             try
             {
                 var user = await _context.Users
-                    .SingleOrDefaultAsync(u => u.Email == dto.Email && u.Password == dto.Password);
+                    .SingleOrDefaultAsync(u => u.Email == dto.Email && u.Password == dto.Password && u.IsActive && !u.IsDeleted);
+                
                 if (user == null)
                 {
                     return Unauthorized(new ApiResponse<object>
@@ -45,21 +46,46 @@ namespace spm_backend.Controllers
                         Errors = new List<string> {"Invalid Password or Email"}
                     });
                 }
-        
-                var token = _tokenService.GenerateToken(user);
-                return Ok(new { Token = token });
+
+                var roles = await _context.UserRoles
+                    .Where(ur => ur.UserID == user.UserID && ur.Role != null && ur.Role.IsActive && !ur.Role.IsDeleted)
+                    .Select(ur => ur.Role!.RoleName)
+                    .ToListAsync();
+
+                if (roles.Count == 0)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User does not have any active role assigned",
+                        Errors = new List<string> { "No active role assigned to this user" }
+                    });
+                }
+                    
+                var token = _tokenService.GenerateToken(user, roles);
+                
+                return Ok(new ApiResponse<object>
+                { 
+                    Success = true,
+                    Message = "Login Successfully !!",
+                    Data = new
+                    {
+                        Token = token
+                    }
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Invalid credentials",
+                    Message = "An error occurred while logging in",
                     Errors = new List<string> { ex.Message }
                 });
             }
         }
         
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -115,6 +141,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
@@ -165,6 +192,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
         {
@@ -239,6 +267,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateUserDto dto)
         {
@@ -321,6 +350,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
@@ -344,7 +374,6 @@ namespace spm_backend.Controllers
                 {
                     Success = true,
                     Message = "User Deleted Successfully !!",
-                    Data = user
                 });
             }
             catch (Exception ex)

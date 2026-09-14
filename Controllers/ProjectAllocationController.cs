@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,10 +31,40 @@ namespace spm_backend.Controllers
         {
             try
             {
-                var result = await _context.ProjectAllocations
+                var userId = GetCurrentUserId();
+                var roles = GetCurrentUserRoles();
+
+                var query = _context.ProjectAllocations
+                    .AsNoTracking()
                     .Include(pa => pa.ProjectMaster)
                     .Include(pa => pa.UserStudent)
                     .Include(pa => pa.UserFaculty)
+                    .AsQueryable();
+                
+                if(roles.Contains("Admin")){}
+                else if (roles.Contains("Faculty"))
+                {
+                    query = query.Where(pa => pa.FacultyID == userId);
+                }
+                else if (roles.Contains("Student"))
+                {
+                    query = query.Where(pa => pa.StudentID == userId);
+                }
+                else if (roles.Contains("Parents"))
+                {
+                    return Ok(new ApiResponse<List<ProjectAllocationDto>>
+                    {
+                        Success = true,
+                        Message = "No parent-child allocation mapping is configured yet",
+                        Data = new List<ProjectAllocationDto>()
+                    });
+                }
+                else
+                {
+                    return Forbid();
+                }
+                
+                var result = await query
                     .Select(pa => new ProjectAllocationDto
                     {
                         ProjectAllocationID = pa.ProjectAllocationID,
@@ -76,6 +107,9 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var userId = GetCurrentUserId();
+                var roles = GetCurrentUserRoles();
+                
                 var projectAllocation = await _context.ProjectAllocations
                     .Include(pa => pa.ProjectMaster)
                     .Include(pa => pa.UserStudent)
@@ -87,9 +121,29 @@ namespace spm_backend.Controllers
                     return NotFound(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = "Project Allocation Not Fount !!",
+                        Message = "Project Allocation Not Found !!",
                         Errors = new List<string> { $"No project allocation found with Id {id}" }
                     });
+                }
+                
+                if (!roles.Contains("Admin"))
+                {
+                    if (roles.Contains("Faculty") &&
+                        projectAllocation.FacultyID != userId)
+                    {
+                        return Forbid();
+                    }
+                    
+                    if (roles.Contains("Student") &&
+                        projectAllocation.StudentID != userId)
+                    {
+                        return Forbid();
+                    }
+                    
+                    if (roles.Contains("Parents"))
+                    {
+                        return Forbid();
+                    }
                 }
                 
                 var result = new ProjectAllocationDto
@@ -129,6 +183,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateProjectAllocationDto dto)
         {
@@ -149,30 +204,61 @@ namespace spm_backend.Controllers
                     });
                 }
                 
-                if (!await _context.ProjectMasters.AnyAsync(p => p.ProjectMasterID == dto.ProjectID))
+                var projectExists = await _context.ProjectMasters
+                    .AnyAsync(p =>
+                        p.ProjectMasterID == dto.ProjectID &&
+                        p.IsActive &&
+                        !p.IsDeleted);
+
+                if (!projectExists)
                 {
                     return BadRequest(new ApiResponse<object>
                     {
                         Success = false,
                         Message = "Invalid Project ID",
+                        Errors = new List<string> { "Project does not exist or is inactive" }
                     });
                 }
+                
+                var studentExists = await _context.UserRoles
+                    .AnyAsync(ur =>
+                        ur.UserID == dto.StudentID &&
+                        ur.Role != null &&
+                        ur.Role.RoleName == "Student" &&
+                        ur.Role.IsActive &&
+                        !ur.Role.IsDeleted &&
+                        ur.User != null &&
+                        ur.User.IsActive &&
+                        !ur.User.IsDeleted);
 
-                if (!await _context.Users.AnyAsync(u => u.UserID == dto.StudentID))
+                if (!studentExists)
                 {
                     return BadRequest(new ApiResponse<object>
                     {
                         Success = false,
                         Message = "Invalid Student ID",
+                        Errors = new List<string> { "Selected user is not an active Student" }
                     });
                 }
+                
+                var facultyExists = await _context.UserRoles
+                    .AnyAsync(ur =>
+                        ur.UserID == dto.FacultyID &&
+                        ur.Role != null &&
+                        ur.Role.RoleName == "Faculty" &&
+                        ur.Role.IsActive &&
+                        !ur.Role.IsDeleted &&
+                        ur.User != null &&
+                        ur.User.IsActive &&
+                        !ur.User.IsDeleted);
 
-                if (!await _context.Users.AnyAsync(u => u.UserID == dto.FacultyID))
+                if (!facultyExists)
                 {
                     return BadRequest(new ApiResponse<object>
                     {
                         Success = false,
                         Message = "Invalid Faculty ID",
+                        Errors = new List<string> { "Selected user is not an active Faculty" }
                     });
                 }
 
@@ -237,6 +323,7 @@ namespace spm_backend.Controllers
             }
         }
         
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id,[FromBody] UpdateProjectAllocationDto dto)
         {
@@ -269,30 +356,58 @@ namespace spm_backend.Controllers
                     });
                 }
 
-                if (!await _context.ProjectMasters.AnyAsync(p => p.ProjectMasterID == dto.ProjectID))
+                var projectExists = await _context.ProjectMasters
+                    .AnyAsync(p =>
+                        p.ProjectMasterID == dto.ProjectID &&
+                        p.IsActive &&
+                        !p.IsDeleted);
+
+                if (!projectExists)
                 {
                     return BadRequest(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = "Invalid Project ID",
+                        Message = "Invalid Project ID"
+                    });
+                }
+                
+                var studentExists = await _context.UserRoles
+                    .AnyAsync(ur =>
+                        ur.UserID == dto.StudentID &&
+                        ur.Role != null &&
+                        ur.Role.RoleName == "Student" &&
+                        ur.Role.IsActive &&
+                        !ur.Role.IsDeleted &&
+                        ur.User != null &&
+                        ur.User.IsActive &&
+                        !ur.User.IsDeleted);
+
+                if (!studentExists)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid Student ID"
                     });
                 }
 
-                if (!await _context.Users.AnyAsync(u => u.UserID == dto.StudentID))
-                {
-                    return BadRequest(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Invalid Student ID",
-                    });
-                }
+                var facultyExists = await _context.UserRoles
+                    .AnyAsync(ur =>
+                        ur.UserID == dto.FacultyID &&
+                        ur.Role != null &&
+                        ur.Role.RoleName == "Faculty" &&
+                        ur.Role.IsActive &&
+                        !ur.Role.IsDeleted &&
+                        ur.User != null &&
+                        ur.User.IsActive &&
+                        !ur.User.IsDeleted);
 
-                if (!await _context.Users.AnyAsync(u => u.UserID == dto.FacultyID))
+                if (!facultyExists)
                 {
                     return BadRequest(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = "Invalid Faculty ID",
+                        Message = "Invalid Faculty ID"
                     });
                 }
 
@@ -334,6 +449,7 @@ namespace spm_backend.Controllers
                     OverAllGrade = updated.OverAllGrade,
                     IsActive = updated.IsActive
                 };
+                
                 return Ok(new ApiResponse<ProjectAllocationDto>
                 {
                     Success = true,
@@ -352,6 +468,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
@@ -364,7 +481,7 @@ namespace spm_backend.Controllers
                     return NotFound(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = "Project Allocation Not Fount !!"
+                        Message = "Project Allocation Not Found !!"
                     });
                 }
                 
@@ -375,7 +492,6 @@ namespace spm_backend.Controllers
                 {
                     Success = true,
                     Message = "Project Allocation Deleted Successfully !!",
-                    Data = projectAllocation
                 });
             }
             catch (Exception ex)
@@ -394,8 +510,31 @@ namespace spm_backend.Controllers
         {
             try
             {
-                var result = await _context.ProjectAllocations
+                var userId = GetCurrentUserId();
+                var roles = GetCurrentUserRoles();
+
+                var query = _context.ProjectAllocations
                     .AsNoTracking()
+                    .Include(x => x.ProjectMaster)
+                    .Include(x => x.UserStudent)
+                    .Include(x => x.UserFaculty)
+                    .AsQueryable();
+
+                if (roles.Contains("Admin")) { }
+                else if (roles.Contains("Faculty"))
+                {
+                    query = query.Where(x => x.FacultyID == userId);
+                }
+                else if (roles.Contains("Student"))
+                {
+                    query = query.Where(x => x.StudentID == userId);
+                }
+                else
+                {
+                    return Forbid();
+                }
+                
+                var result = await query
                     .OrderBy(x => x.ProjectMaster.ProjectTitle)
                     .Select(x => new ProjectAllocationDto
                     {
@@ -421,6 +560,26 @@ namespace spm_backend.Controllers
                     Errors = new List<string> { ex.Message }
                 });
             }
+        }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if(!int.TryParse(userIdClaim, out var userId))
+            {
+                throw new UnauthorizedAccessException("User ID not found in token");
+            }
+
+            return userId;
+        }
+
+        private List<string> GetCurrentUserRoles()
+        {
+            return User
+                .FindAll(ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
         }
     }
 }
