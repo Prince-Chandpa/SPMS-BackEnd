@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Common;
@@ -10,6 +11,7 @@ namespace spm_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UserRoleController : ControllerBase
     {
         private readonly AppDbContext _context;

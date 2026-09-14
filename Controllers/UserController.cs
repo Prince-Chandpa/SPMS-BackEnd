@@ -1,28 +1,65 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using spm_backend.Common;
 using spm_backend.Data;
 using spm_backend.DTOs.User;
 using spm_backend.Models;
+using spm_backend.Services;
 
 namespace spm_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly TokenService _tokenService;
         private readonly IValidator<CreateUserDto> _createValidator;
         private readonly IValidator<UpdateUserDto> _updateValidator;
         
-        public UserController(AppDbContext context, IValidator<CreateUserDto> createValidator, IValidator<UpdateUserDto> updateValidator)
+        public UserController(AppDbContext context, TokenService tokenService, IValidator<CreateUserDto> createValidator, IValidator<UpdateUserDto> updateValidator)
         {
             _context = context;
+            _tokenService = tokenService;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
         }
-
+        
+        [AllowAnonymous]
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDto dto)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .SingleOrDefaultAsync(u => u.Email == dto.Email && u.Password == dto.Password);
+                if (user == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid Email or password",
+                        Errors = new List<string> {"Invalid Password or Email"}
+                    });
+                }
+        
+                var token = _tokenService.GenerateToken(user);
+                return Ok(new { Token = token });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid credentials",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
+        }
+        
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {

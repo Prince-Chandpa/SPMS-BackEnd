@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using spm_backend.Common;
 using spm_backend.Data;
 
 namespace spm_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DashboardController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -20,7 +23,12 @@ namespace spm_backend.Controllers
         public async Task<IActionResult> GetTotalStudent()
         {
             var result = await _context.Users.CountAsync(u => u.UserType.UserTypeName == "Student");
-            return Ok(result);
+            return Ok(new ApiResponse<int>
+            {
+                Success = true,
+                Message = "Total Student Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -29,7 +37,12 @@ namespace spm_backend.Controllers
         public async Task<IActionResult> GetTotalFacultyMember()
         {
             var result = await _context.Users.CountAsync(u => u.UserType.UserTypeName == "Faculty");
-            return Ok(result);
+            return Ok(new ApiResponse<int>
+            {
+                Success = true,
+                Message = "Total Faculty Member Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
 
@@ -38,7 +51,12 @@ namespace spm_backend.Controllers
         public async Task<IActionResult> GetTotalProjectAvailable()
         {
             var result = await _context.ProjectMasters.CountAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<int>
+            {
+                Success = true,
+                Message = "Total Project Available Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
 
@@ -52,7 +70,12 @@ namespace spm_backend.Controllers
                     Status = g.Key,
                     TotalTasks = g.Count()
                 }).ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Task Status Count Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -66,7 +89,12 @@ namespace spm_backend.Controllers
                     Priority = g.Key,
                     TotalTasks = g.Count()
                 }).ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Priority Wise Task Count Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -81,7 +109,12 @@ namespace spm_backend.Controllers
                     Projects = g.Count()
                 }).ToListAsync();
 
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Faculty Wise Project Count Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -95,7 +128,12 @@ namespace spm_backend.Controllers
                     Student = g.Key,
                     Tasks = g.Count()
                 }).ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Student Wise Task Count Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -112,7 +150,12 @@ namespace spm_backend.Controllers
                 .OrderByDescending(score => score.AverageScore)
                 .Take(10)
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Highest Average Score Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -129,7 +172,12 @@ namespace spm_backend.Controllers
                 .OrderBy(score => score.AverageScore)
                 .Take(10)
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Lowest Average Score Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -146,7 +194,12 @@ namespace spm_backend.Controllers
                     t.TaskDueDate
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Overdue Tasks Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -164,7 +217,12 @@ namespace spm_backend.Controllers
                     t.NextFollowUpDate
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Upcoming Follow Up Tasks Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -178,7 +236,12 @@ namespace spm_backend.Controllers
                     Grade = g.Key,
                     Students = g.Count()
                 }).ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Student Grade Count Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -198,7 +261,12 @@ namespace spm_backend.Controllers
                 TotalCompletedTasks = g.Count()
             })
             .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Month Wise Completed Task Count Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -215,7 +283,12 @@ namespace spm_backend.Controllers
                 })
                 .OrderByDescending(g => g.ActiveUser)
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Role Wise Active User Count Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -230,7 +303,12 @@ namespace spm_backend.Controllers
                     UserName = g.Select(u => u.User.FullName).ToList()
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Role Wise Users Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
         
@@ -246,7 +324,12 @@ namespace spm_backend.Controllers
                 })
                 .Where(g => g.TotalUsers > 10)
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Roles With More Than 10 Users Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -264,7 +347,12 @@ namespace spm_backend.Controllers
                 })
                 .OrderByDescending(g => g.TotalUsers)
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Role Statistics Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -282,7 +370,12 @@ namespace spm_backend.Controllers
                     RemainingDays = EF.Functions.DateDiffDay(DateTime.Today, t.TaskDueDate)
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Due Soon Tasks Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -300,7 +393,12 @@ namespace spm_backend.Controllers
                     AverageProgress = g.Average(t => t.ProgressPercentage)
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Project Task Summary Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -317,7 +415,12 @@ namespace spm_backend.Controllers
                     ScorePercentage = g.Average(t => t.ProgressPercentage)
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Project Wise Score Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -334,7 +437,12 @@ namespace spm_backend.Controllers
                 .OrderByDescending(g => g.AverageScore)
                 .Take(10)
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Top 10 Projects Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -351,7 +459,12 @@ namespace spm_backend.Controllers
                     AverageProgress = g.Average(t => t.ProgressPercentage)
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Faculty Project Summary Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -369,7 +482,12 @@ namespace spm_backend.Controllers
                     AverageScore = g.Average(t => t.EarnedScore)
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Student Task Completion Statistics Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -387,7 +505,12 @@ namespace spm_backend.Controllers
                     EndDate = p.ProjectEndDate,
                     Progress = p.ProgressPercentage,
                 }).ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Overdue Projects Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -425,7 +548,12 @@ namespace spm_backend.Controllers
                 })
                 .OrderByDescending(g => g.AverageProgress)
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Faculty Ranking Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion 
         
@@ -444,7 +572,12 @@ namespace spm_backend.Controllers
                         t.TaskDueDate < DateTime.Now && t.TaskStatus.TaskStatusName != "Completed"),
                 })
                 .ToListAsync();
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Project Task Statistics Retrieved Successfully !!",
+                Data = result
+            });
         }
         #endregion
     }
