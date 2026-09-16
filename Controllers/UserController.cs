@@ -321,8 +321,13 @@ namespace spm_backend.Controllers
                 
                 if (dto.ProfilePicture != null && dto.ProfilePicture.Length > 0)
                 {
-                    _fileService.DeleteFile(existingUser.ProfilePicturePath);
-                    existingUser.ProfilePicturePath = await _fileService.UploadFileAsync(dto.ProfilePicture, "Users");
+                    var oldProfilePicturePath = existingUser.ProfilePicturePath;
+                    
+                    var newProfilePicturePath = await _fileService.UploadFileAsync(dto.ProfilePicture, "Users");
+                    
+                    existingUser.ProfilePicturePath = newProfilePicturePath;
+                    
+                    _fileService.DeleteFile(oldProfilePicturePath);
                 }
                 
                 existingUser.UserTypeID = dto.UserTypeID;
