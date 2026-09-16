@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,11 +31,47 @@ namespace spm_backend.Controllers
         {
             try
             {
-                var result = await _context.Tasks
+                var userId = GetCurrentUserId();
+                
+                if (userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token",
+                        Errors = new List<string> { "The JWT does not contain a valid User ID claim." }
+                    });
+                }
+                
+                var roles = GetCurrentUserRoles();
+
+                var query = _context.Tasks
+                    .AsNoTracking()
                     .Include(t => t.ProjectAllocation)
                     .ThenInclude(pa => pa.ProjectMaster)
                     .Include(t => t.TaskStatus)
-                    .Include(t => t.TaskPriority).Select(t => new TaskDto
+                    .Include(t => t.TaskPriority)
+                    .AsQueryable();
+
+                if (roles.Contains("Admin"))
+                { }
+                else if (roles.Contains("Faculty"))
+                {
+                    query = query.Where(t =>
+                        t.ProjectAllocation.FacultyID == userId.Value);
+                }
+                else if (roles.Contains("Student"))
+                {
+                    query = query.Where(t =>
+                        t.ProjectAllocation.StudentID == userId.Value);
+                }
+                else
+                {
+                    return Forbid();
+                }
+                
+                var result = await query
+                    .Select(t => new TaskDto
                     {
                         TaskID = t.TaskID,
                         ProjectAllocationID = t.ProjectAllocationID,
@@ -56,7 +93,8 @@ namespace spm_backend.Controllers
                         FacultyRemarks = t.FacultyRemarks,
                         StudentRemarks = t.StudentRemarks,
                         IsActive = t.IsActive
-                    }).ToListAsync();
+                    })
+                    .ToListAsync();
                 
                 return Ok(new ApiResponse<List<TaskDto>>
                 {
@@ -81,6 +119,17 @@ namespace spm_backend.Controllers
         {
             try
             {
+                var userId = GetCurrentUserId();
+
+                if (userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+                
                 var task = await _context.Tasks
                     .Include(t => t.ProjectAllocation)
                     .ThenInclude(pa => pa.ProjectMaster)
@@ -96,6 +145,29 @@ namespace spm_backend.Controllers
                         Message = "Task Not Found !!",
                         Errors = new List<string> { $"No task found with Id {id}" }
                     });
+                }
+                
+                var roles = GetCurrentUserRoles();
+
+                if (roles.Contains("Admin"))
+                { }
+                else if (roles.Contains("Faculty"))
+                {
+                    if (task.ProjectAllocation.FacultyID != userId.Value)
+                    {
+                        return Forbid();
+                    }
+                }
+                else if (roles.Contains("Student"))
+                {
+                    if (task.ProjectAllocation.StudentID != userId.Value)
+                    {
+                        return Forbid();
+                    }
+                }
+                else
+                {
+                    return Forbid();
                 }
                 
                 var result = new TaskDto
@@ -140,6 +212,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin,Faculty")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTaskDto dto)
         {
@@ -160,30 +233,65 @@ namespace spm_backend.Controllers
                     });
                 }
                 
-                if (!await _context.ProjectAllocations.AnyAsync(pa => pa.ProjectAllocationID == dto.ProjectAllocationID))
+                var userIdClaim =
+                    User.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? User.FindFirstValue("nameid")
+                    ?? User.FindFirstValue("userId");
+
+                if (!int.TryParse(userIdClaim, out var userId))
                 {
-                    return BadRequest(new ApiResponse<object>
+                    return Unauthorized(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = "Invalid Project Allocation ID."
+                        Message = "Invalid user identity."
                     });
                 }
 
-                if (!await _context.TaskStatuses.AnyAsync(ts => ts.TaskStatusID == dto.TaskStatusID))
+                var roles = User
+                    .FindAll(ClaimTypes.Role)
+                    .Select(c => c.Value)
+                    .ToList();
+                
+                var projectAllocation = await _context.ProjectAllocations
+                    .FirstOrDefaultAsync(pa =>
+                        pa.ProjectAllocationID == dto.ProjectAllocationID);
+
+                if (projectAllocation == null)
                 {
-                    return BadRequest(new ApiResponse<object>
+                    return NotFound(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = "Invalid Task Status ID."
+                        Message = "Project allocation not found."
                     });
                 }
+                
+                if (roles.Contains("Faculty") &&
+                    projectAllocation.FacultyID != userId)
+                {
+                    return Forbid();
+                }
+                
+                var taskStatusExists = await _context.TaskStatuses
+                    .AnyAsync(ts => ts.TaskStatusID == dto.TaskStatusID);
 
-                if (!await _context.TaskPriorities.AnyAsync(tp => tp.TaskPriorityID == dto.TaskPriorityID))
+                if (!taskStatusExists)
                 {
                     return BadRequest(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = "Invalid Task Priority ID."
+                        Message = "Invalid TaskStatusID."
+                    });
+                }
+                
+                var taskPriorityExists = await _context.TaskPriorities
+                    .AnyAsync(tp => tp.TaskPriorityID == dto.TaskPriorityID);
+
+                if (!taskPriorityExists)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid TaskPriorityID."
                     });
                 }
 
@@ -217,6 +325,15 @@ namespace spm_backend.Controllers
                     .Include(t => t.TaskPriority)
                     .FirstAsync(t => t.TaskID == task.TaskID);
 
+                if (createdTask == null)
+                {
+                    return StatusCode(500, new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Task was created but could not be retrieved."
+                    });
+                }
+                
                 var result = new TaskDto
                 {
                     TaskID = createdTask.TaskID,
@@ -279,7 +396,28 @@ namespace spm_backend.Controllers
                     });
                 }
                 
-                var task = await _context.Tasks.FindAsync(id);
+                var userIdClaim =
+                    User.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? User.FindFirstValue("nameid")
+                    ?? User.FindFirstValue("userId");
+
+                if (!int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid user identity."
+                    });
+                }
+
+                var roles = User
+                    .FindAll(ClaimTypes.Role)
+                    .Select(c => c.Value)
+                    .ToList();
+
+                var task = await _context.Tasks
+                    .Include(t => t.ProjectAllocation)
+                    .FirstOrDefaultAsync(t => t.TaskID == id);
 
                 if (task == null)
                 {
@@ -287,8 +425,38 @@ namespace spm_backend.Controllers
                     {
                         Success = false,
                         Message = "Task Not Found !!",
-                        Errors = new List<string> { $"No task found with Id {id}" }
                     });
+                }
+                
+                if (task.ProjectAllocation == null)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Task project allocation was not found !!"
+                    });
+                }
+                
+                if (roles.Contains("Admin"))
+                {
+                }
+                else if (roles.Contains("Faculty"))
+                {
+                    if (task.ProjectAllocation.FacultyID != userId)
+                    {
+                        return Forbid();
+                    }
+                }
+                else if (roles.Contains("Student"))
+                {
+                    if (task.ProjectAllocation.StudentID != userId)
+                    {
+                        return Forbid();
+                    }
+                }
+                else
+                {
+                    return Forbid();
                 }
 
                 if (!await _context.ProjectAllocations.AnyAsync(pa =>
@@ -319,23 +487,49 @@ namespace spm_backend.Controllers
                     });
                 }
 
-
-                task.ProjectAllocationID = dto.ProjectAllocationID;
-                task.TaskStatusID = dto.TaskStatusID;
-                task.TaskPriorityID = dto.TaskPriorityID;
-                task.TaskTitle = dto.TaskTitle;
-                task.TaskDescription = dto.TaskDescription;
-                task.AssignedScore = dto.AssignedScore;
-                task.EarnedScore = dto.EarnedScore;
-                task.ProgressPercentage = dto.ProgressPercentage;
-                task.TaskAssignedDate = dto.TaskAssignedDate;
-                task.TaskStartDate = dto.TaskStartDate;
-                task.TaskDueDate = dto.TaskDueDate;
-                task.TaskCompletedDate = dto.TaskCompletedDate;
-                task.NextFollowUpDate = dto.NextFollowUpDate;
-                task.FacultyRemarks = dto.FacultyRemarks;
-                task.StudentRemarks = dto.StudentRemarks;
-                task.IsActive = dto.IsActive;
+                if (roles.Contains("Admin"))
+                {
+                    task.ProjectAllocationID = dto.ProjectAllocationID;
+                    task.TaskStatusID = dto.TaskStatusID;
+                    task.TaskPriorityID = dto.TaskPriorityID;
+                    task.TaskTitle = dto.TaskTitle;
+                    task.TaskDescription = dto.TaskDescription;
+                    task.AssignedScore = dto.AssignedScore;
+                    task.EarnedScore = dto.EarnedScore;
+                    task.ProgressPercentage = dto.ProgressPercentage;
+                    task.TaskAssignedDate = dto.TaskAssignedDate;
+                    task.TaskStartDate = dto.TaskStartDate;
+                    task.TaskDueDate = dto.TaskDueDate;
+                    task.TaskCompletedDate = dto.TaskCompletedDate;
+                    task.NextFollowUpDate = dto.NextFollowUpDate;
+                    task.FacultyRemarks = dto.FacultyRemarks;
+                    task.StudentRemarks = dto.StudentRemarks;
+                    task.IsActive = dto.IsActive;
+                }
+                else if (roles.Contains("Faculty"))
+                {
+                    task.TaskStatusID = dto.TaskStatusID;
+                    task.TaskPriorityID = dto.TaskPriorityID;
+                    task.TaskTitle = dto.TaskTitle;
+                    task.TaskDescription = dto.TaskDescription;
+                    task.EarnedScore = dto.EarnedScore;
+                    task.ProgressPercentage = dto.ProgressPercentage;
+                    task.TaskStartDate = dto.TaskStartDate;
+                    task.TaskDueDate = dto.TaskDueDate;
+                    task.TaskCompletedDate = dto.TaskCompletedDate;
+                    task.NextFollowUpDate = dto.NextFollowUpDate;
+                    task.FacultyRemarks = dto.FacultyRemarks;
+                    task.IsActive = dto.IsActive;
+                }
+                else if (roles.Contains("Student"))
+                {
+                    task.TaskStatusID = dto.TaskStatusID;
+                    task.ProgressPercentage = dto.ProgressPercentage;
+                    task.TaskStartDate = dto.TaskStartDate;
+                    task.TaskCompletedDate = dto.TaskCompletedDate;
+                    task.NextFollowUpDate = dto.NextFollowUpDate;
+                    task.StudentRemarks = dto.StudentRemarks;
+                }
 
                 await _context.SaveChangesAsync();
 
@@ -346,6 +540,15 @@ namespace spm_backend.Controllers
                     .Include(t => t.TaskPriority)
                     .FirstAsync(t => t.TaskID == task.TaskID);
 
+                if (updatedTask == null)
+                {
+                    return StatusCode(500, new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Task was updated but could not be retrieved."
+                    });
+                }
+                
                 var result = new TaskDto
                 {
                     TaskID = updatedTask.TaskID,
@@ -388,6 +591,7 @@ namespace spm_backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
@@ -423,6 +627,29 @@ namespace spm_backend.Controllers
                     Errors = new List<string> { ex.Message }
                 });
             }
+        }
+        
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim =
+                User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("nameid")
+                ?? User.FindFirstValue("userId");
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return null;
+            }
+
+            return userId;
+        }
+
+        private List<string> GetCurrentUserRoles()
+        {
+            return User
+                .FindAll(ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
         }
     }
 }
