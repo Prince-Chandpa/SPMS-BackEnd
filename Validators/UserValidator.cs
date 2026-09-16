@@ -54,9 +54,11 @@ public class CreateUserValidator : AbstractValidator<CreateUserDto>
             .Matches(@"^[0-9]{10}$")
             .WithMessage("Mobile number must contain 10 digits.");
         
-        RuleFor(x => x.ProfilePicturePath)
-            .MaximumLength(500)
-            .WithMessage("Profile picture path is limited to 500 characters.");
+        RuleFor(x => x.ProfilePicture)
+            .Must(file => file == null || new[] {".jpg", ".jpeg", ".png"}.Contains(Path.GetExtension(file.FileName).ToLowerInvariant()))
+            .WithMessage("Only JPG, JPEG, and PNG files are allowed.")
+            .Must(file => file == null || file.Length <= 5 * 1024 * 1024)
+            .WithMessage("Profile picture cannot exceed 5 MB.");
         
         // Data Exists Validation
         RuleFor(x => x.UserTypeID)
@@ -115,9 +117,11 @@ public class UpdateUserValidator : AbstractValidator<UpdateUserDto>
             .Matches(@"^[0-9]{10}$")
             .WithMessage("Mobile number must contain 10 digits.");
         
-        RuleFor(x => x.ProfilePicturePath)
-            .MaximumLength(500)
-            .WithMessage("Profile picture path is limited to 500 characters.");
+        RuleFor(x => x.ProfilePicture)
+            .Must(file => file == null || new[] {".jpg", ".jpeg", ".png"}.Contains(Path.GetExtension(file.FileName).ToLowerInvariant()))
+            .WithMessage("Only JPG, JPEG, and PNG files are allowed.")
+            .Must(file => file == null || file.Length <= 5 * 1024 * 1024)
+            .WithMessage("Profile picture cannot exceed 5 MB.");
         
         RuleFor(x => x.UserTypeID)
             .MustAsync(async (userTypeID, cancellation) =>

@@ -41,14 +41,10 @@ public class CreateProjectAllocationValidator : AbstractValidator<CreateProjectA
             .WithMessage("Project end date must be greater than or equal to project start date.");
         
         RuleFor(x => x.TotalTasksGiven)
-            .NotEmpty()
-            .WithMessage("Total tasks given is required.")
             .GreaterThanOrEqualTo(0)
             .WithMessage("Total tasks given cannot be negative.");
         
         RuleFor(x => x.TotalCompletedTasks)
-            .NotEmpty()
-            .WithMessage("Total tasks completed is required.")
             .GreaterThanOrEqualTo(0)
             .WithMessage("Total completed tasks cannot be negative.");
         

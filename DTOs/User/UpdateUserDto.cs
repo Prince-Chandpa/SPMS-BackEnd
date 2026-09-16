@@ -23,8 +23,8 @@ public class UpdateUserDto
     [Required]
     [Phone]
     public string MobileNumber { get; set; } = string.Empty;
-
-    public string ProfilePicturePath { get; set; } = string.Empty;
+    
+    public IFormFile? ProfilePicture { get; set; }
 
     public bool IsActive { get; set; }
 }

@@ -32,38 +32,45 @@ namespace spm_backend.Controllers
             try
             {
                 var userId = GetCurrentUserId();
+        
+                if (userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token",
+                        Errors = new List<string>
+                        {
+                            "The JWT does not contain a valid User ID claim."
+                        }
+                    });
+                }
+        
                 var roles = GetCurrentUserRoles();
-
+        
                 var query = _context.ProjectAllocations
                     .AsNoTracking()
                     .Include(pa => pa.ProjectMaster)
                     .Include(pa => pa.UserStudent)
                     .Include(pa => pa.UserFaculty)
                     .AsQueryable();
-                
-                if(roles.Contains("Admin")){}
+        
+                if (roles.Contains("Admin"))
+                {
+                }
                 else if (roles.Contains("Faculty"))
                 {
-                    query = query.Where(pa => pa.FacultyID == userId);
+                    query = query.Where(pa => pa.FacultyID == userId.Value);
                 }
                 else if (roles.Contains("Student"))
                 {
-                    query = query.Where(pa => pa.StudentID == userId);
-                }
-                else if (roles.Contains("Parents"))
-                {
-                    return Ok(new ApiResponse<List<ProjectAllocationDto>>
-                    {
-                        Success = true,
-                        Message = "No parent-child allocation mapping is configured yet",
-                        Data = new List<ProjectAllocationDto>()
-                    });
+                    query = query.Where(pa => pa.StudentID == userId.Value);
                 }
                 else
                 {
                     return Forbid();
                 }
-                
+        
                 var result = await query
                     .Select(pa => new ProjectAllocationDto
                     {
@@ -82,8 +89,9 @@ namespace spm_backend.Controllers
                         ProgressPercentage = pa.ProgressPercentage,
                         OverAllGrade = pa.OverAllGrade,
                         IsActive = pa.IsActive
-                    }).ToListAsync();
-                
+                    })
+                    .ToListAsync();
+        
                 return Ok(new ApiResponse<List<ProjectAllocationDto>>
                 {
                     Success = true,
@@ -108,13 +116,38 @@ namespace spm_backend.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                var roles = GetCurrentUserRoles();
-                
+
+                if (userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+
                 var projectAllocation = await _context.ProjectAllocations
                     .Include(pa => pa.ProjectMaster)
                     .Include(pa => pa.UserStudent)
                     .Include(pa => pa.UserFaculty)
                     .FirstOrDefaultAsync(pa => pa.ProjectAllocationID == id);
+                
+                var roles = GetCurrentUserRoles();
+
+                if (!roles.Contains("Admin"))
+                {
+                    if (roles.Contains("Faculty") &&
+                        projectAllocation.FacultyID != userId.Value)
+                    {
+                        return Forbid();
+                    }
+
+                    if (roles.Contains("Student") &&
+                        projectAllocation.StudentID != userId.Value)
+                    {
+                        return Forbid();
+                    }
+                }
                 
                 if (projectAllocation == null)
                 {
@@ -124,26 +157,6 @@ namespace spm_backend.Controllers
                         Message = "Project Allocation Not Found !!",
                         Errors = new List<string> { $"No project allocation found with Id {id}" }
                     });
-                }
-                
-                if (!roles.Contains("Admin"))
-                {
-                    if (roles.Contains("Faculty") &&
-                        projectAllocation.FacultyID != userId)
-                    {
-                        return Forbid();
-                    }
-                    
-                    if (roles.Contains("Student") &&
-                        projectAllocation.StudentID != userId)
-                    {
-                        return Forbid();
-                    }
-                    
-                    if (roles.Contains("Parents"))
-                    {
-                        return Forbid();
-                    }
                 }
                 
                 var result = new ProjectAllocationDto
@@ -511,23 +524,35 @@ namespace spm_backend.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                var roles = GetCurrentUserRoles();
 
+                if (userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User ID not found in token"
+                    });
+                }
+                
                 var query = _context.ProjectAllocations
                     .AsNoTracking()
                     .Include(x => x.ProjectMaster)
                     .Include(x => x.UserStudent)
                     .Include(x => x.UserFaculty)
                     .AsQueryable();
-
-                if (roles.Contains("Admin")) { }
+                
+                var roles = GetCurrentUserRoles();
+                
+                if (roles.Contains("Admin"))
+                {
+                }
                 else if (roles.Contains("Faculty"))
                 {
-                    query = query.Where(x => x.FacultyID == userId);
+                    query = query.Where(x => x.FacultyID == userId.Value);
                 }
                 else if (roles.Contains("Student"))
                 {
-                    query = query.Where(x => x.StudentID == userId);
+                    query = query.Where(x => x.StudentID == userId.Value);
                 }
                 else
                 {
@@ -562,13 +587,16 @@ namespace spm_backend.Controllers
             }
         }
 
-        private int GetCurrentUserId()
+        private int? GetCurrentUserId()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
-            if(!int.TryParse(userIdClaim, out var userId))
+            var userIdClaim =
+                User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("nameid")
+                ?? User.FindFirstValue("userId");
+
+            if (!int.TryParse(userIdClaim, out var userId))
             {
-                throw new UnauthorizedAccessException("User ID not found in token");
+                return null;
             }
 
             return userId;

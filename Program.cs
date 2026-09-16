@@ -2,6 +2,7 @@ using System.Text;
 using DotNetEnv;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -68,6 +69,13 @@ public class Program
             };
         });
 
+        builder.Services.AddScoped<IFileService, FileService>();
+
+        builder.Services.Configure<FormOptions>(options =>
+        {
+            options.MultipartBodyLengthLimit = 15 * 1024 * 1024;
+        });
+        
         builder.Services.AddScoped<TokenService>();
         
         builder.Services.AddValidatorsFromAssemblyContaining<CreateRoleValidator>();
@@ -108,6 +116,7 @@ public class Program
         app.UseCors("AllowAll");
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseStaticFiles();
         app.MapControllers();
 
         app.Run();

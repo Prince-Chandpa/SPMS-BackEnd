@@ -19,13 +19,15 @@ namespace spm_backend.Controllers
         private readonly TokenService _tokenService;
         private readonly IValidator<CreateUserDto> _createValidator;
         private readonly IValidator<UpdateUserDto> _updateValidator;
+        private readonly IFileService _fileService;
         
-        public UserController(AppDbContext context, TokenService tokenService, IValidator<CreateUserDto> createValidator, IValidator<UpdateUserDto> updateValidator)
+        public UserController(AppDbContext context, TokenService tokenService, IValidator<CreateUserDto> createValidator, IValidator<UpdateUserDto> updateValidator, IFileService fileService)
         {
             _context = context;
             _tokenService = tokenService;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
+            _fileService = fileService;
         }
         
         [AllowAnonymous]
@@ -194,12 +196,14 @@ namespace spm_backend.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Create([FromForm] CreateUserDto dto)
         {
             try
             {
                 var validator = await _createValidator.ValidateAsync(dto);
-
+                string? uploadedPath = null;
+                
                 if (!validator.IsValid)
                 {
                     return BadRequest(new ApiResponse<Object>
@@ -211,6 +215,11 @@ namespace spm_backend.Controllers
                             .Select(x => $"{x.Key}: {string.Join(", ", x.Select(e => e.ErrorMessage))}")
                             .ToList()
                     });
+                }
+
+                if (dto.ProfilePicture != null)
+                {
+                    uploadedPath = await _fileService.UploadFileAsync(dto.ProfilePicture, "Users");
                 }
                 
                 if (!await _context.UserTypes.AnyAsync(pa => pa.UserTypeID == dto.UserTypeID))
@@ -230,7 +239,7 @@ namespace spm_backend.Controllers
                     Email = dto.Email,
                     Password = dto.Password,
                     MobileNumber = dto.MobileNumber,
-                    ProfilePicturePath = dto.ProfilePicturePath,
+                    ProfilePicturePath = uploadedPath,
                     IsActive = dto.IsActive
                 };
 
@@ -269,7 +278,8 @@ namespace spm_backend.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateUserDto dto)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Update([FromRoute] int id, [FromForm] UpdateUserDto dto)   
         {
             try
             {
@@ -309,13 +319,18 @@ namespace spm_backend.Controllers
                     });
                 }
                 
+                if (dto.ProfilePicture != null && dto.ProfilePicture.Length > 0)
+                {
+                    _fileService.DeleteFile(existingUser.ProfilePicturePath);
+                    existingUser.ProfilePicturePath = await _fileService.UploadFileAsync(dto.ProfilePicture, "Users");
+                }
+                
                 existingUser.UserTypeID = dto.UserTypeID;
                 existingUser.FullName = dto.FullName;
                 existingUser.UserCode = dto.UserCode;
                 existingUser.Email = dto.Email;
                 existingUser.Password = dto.Password;
                 existingUser.MobileNumber = dto.MobileNumber;
-                existingUser.ProfilePicturePath = dto.ProfilePicturePath;
                 existingUser.IsActive = dto.IsActive;
 
                 await _context.SaveChangesAsync();
@@ -352,7 +367,7 @@ namespace spm_backend.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete([FromRoute] int id)
+        public async Task<IActionResult> Delete([FromRoute] int id, [FromQuery] bool deleteFileOnly = false)
         {
             try
             {
@@ -366,7 +381,31 @@ namespace spm_backend.Controllers
                         Message = "User Not Found !!"
                     });
                 }
+
+                if (deleteFileOnly)
+                {
+                    if (string.IsNullOrEmpty(user.ProfilePicturePath))
+                    {
+                        return BadRequest(new ApiResponse<object>
+                        {
+                            Success = false,
+                            Message = "Profile Picture Not Found !!",
+                            Errors = new List<string> { "No document exists for this user." }
+                       });
+                    }
+                    
+                    _fileService.DeleteFile(user.ProfilePicturePath);
+                    user.ProfilePicturePath = null;
+                    await _context.SaveChangesAsync();
+
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Document deleted successfully.",
+                    });
+                }
             
+                _fileService.DeleteFile(user.ProfilePicturePath);
                 _context.Users.Remove(user);            
                 await _context.SaveChangesAsync();
 

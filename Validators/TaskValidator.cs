@@ -67,7 +67,7 @@ public class CreateTaskValidator : AbstractValidator<CreateTaskDto>
             .WithMessage("Task completed date must be greater than or equal to task start date.");
         
         RuleFor(x => x)
-            .Must(x => !x.TaskCompletedDate.HasValue || !x.TaskDueDate.HasValue || x.TaskCompletedDate.Value >= x.TaskDueDate.Value)
+            .Must(x => !x.TaskCompletedDate.HasValue || !x.TaskDueDate.HasValue || x.TaskCompletedDate.Value <= x.TaskDueDate.Value)
             .WithMessage("Task completed date must be greater than or equal to task due date.");
         
         RuleFor(x => x)
@@ -164,7 +164,7 @@ public class UpdateTaskValidator : AbstractValidator<UpdateTaskDto>
             .WithMessage("Task completed date must be greater than or equal to task start date.");
         
         RuleFor(x => x)
-            .Must(x => !x.TaskCompletedDate.HasValue || !x.TaskDueDate.HasValue || x.TaskCompletedDate.Value >= x.TaskDueDate.Value)
+            .Must(x => !x.TaskCompletedDate.HasValue || !x.TaskDueDate.HasValue || x.TaskCompletedDate.Value <= x.TaskDueDate.Value)
             .WithMessage("Task completed date must be greater than or equal to task due date.");
         
         RuleFor(x => x.FacultyRemarks)
