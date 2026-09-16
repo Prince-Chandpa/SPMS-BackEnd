@@ -12,3 +12,7 @@ obj/
 .env
 .env.*
 !.env.example
+
+    
+wwwroot/Files/*
+!wwwroot/Files/.gitkeep
