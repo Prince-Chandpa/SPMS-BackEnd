@@ -27,10 +27,30 @@ namespace spm_backend.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int? taskId,
+            [FromQuery] string? taskTitle,
+            [FromQuery] int? taskPriorityId,
+            [FromQuery] int? taskStatusId,
+            [FromQuery] decimal? assignedScore,
+            [FromQuery] DateTime? dueDate,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
+                if (pageNumber < 1 || pageSize < 1)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Page number or size invalid",
+                        Errors = new List<string> { "Page number or size must be greater than 0" }
+                    });
+                }
+                
                 var userId = GetCurrentUserId();
                 
                 if (userId == null)
@@ -52,7 +72,47 @@ namespace spm_backend.Controllers
                     .Include(t => t.TaskStatus)
                     .Include(t => t.TaskPriority)
                     .AsQueryable();
+                
+                if (taskId.HasValue)
+                {
+                    query = query.Where(t => t.TaskID == taskId.Value);
+                }
+                
+                if (!string.IsNullOrWhiteSpace(taskTitle))
+                {
+                    query = query.Where(t => t.TaskTitle.Contains(taskTitle));
+                }
+                
+                if (taskPriorityId.HasValue)
+                {
+                    query = query.Where(t => t.TaskPriorityID == taskPriorityId.Value);
+                }
+                
+                if (taskStatusId.HasValue)
+                {
+                    query = query.Where(t => t.TaskStatusID == taskStatusId.Value);
+                }
+                
+                if (assignedScore.HasValue)
+                {
+                    query = query.Where(t => t.AssignedScore == assignedScore.Value);
+                }
+                
+                if (dueDate.HasValue)
+                {
+                    query = query.Where(t => t.TaskDueDate.Value.Date == dueDate.Value.Date);
+                }
+                
+                if (fromDate.HasValue)
+                {
+                    query = query.Where(t => t.TaskDueDate >= fromDate.Value);
+                }
 
+                if (toDate.HasValue)
+                {
+                    query = query.Where(t => t.TaskDueDate <= toDate.Value);
+                }
+                
                 if (roles.Contains("Admin"))
                 { }
                 else if (roles.Contains("Faculty"))
@@ -69,6 +129,8 @@ namespace spm_backend.Controllers
                 {
                     return Forbid();
                 }
+
+                var totalCount = await query.CountAsync();
                 
                 var result = await query
                     .Select(t => new TaskDto
@@ -94,13 +156,23 @@ namespace spm_backend.Controllers
                         StudentRemarks = t.StudentRemarks,
                         IsActive = t.IsActive
                     })
+                    .OrderBy(t => t.TaskDueDate)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
                 
-                return Ok(new ApiResponse<List<TaskDto>>
+                return Ok(new ApiResponse<object>
                 {
                     Success = true,
                     Message = "Task Retrieved Successfully !!",
-                    Data = result
+                    Data = new
+                    {
+                        result,
+                        pageNumber,
+                        pageSize,
+                        totalCount,
+                        totalPage = (int)Math.Ceiling(totalCount / (double) pageSize)
+                    }
                 });
             }
             catch (Exception ex)
