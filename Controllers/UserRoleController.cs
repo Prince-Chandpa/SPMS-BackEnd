@@ -11,7 +11,7 @@ namespace spm_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class UserRoleController : ControllerBase
     {
         private readonly AppDbContext _context;
