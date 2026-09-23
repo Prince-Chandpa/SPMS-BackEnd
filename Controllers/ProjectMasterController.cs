@@ -26,23 +26,64 @@ namespace spm_backend.Controllers
         }
         
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? projectTitle,
+            [FromQuery] bool? isActive,
+            [FromQuery] int pageNumber = 1, 
+            [FromQuery] int pageSize = 10)
         {
             try
             {
-                var result = await _context.ProjectMasters.Select(pm => new ProjectMasterDto
+                if (pageNumber < 1 || pageSize < 1)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Page number or size invalid",
+                        Errors = new List<string> { "Page number or size must be greater than 0" }
+                    });
+                }
+
+                var query = _context.ProjectMasters
+                    .AsNoTracking()
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(projectTitle))
+                {
+                    query = query.Where(pm => pm.ProjectTitle.Contains(projectTitle));
+                }
+                
+                if (isActive.HasValue)
+                {
+                    query = query.Where(pm => pm.IsActive == isActive.Value);
+                }
+                
+                var totalCount = await query.CountAsync();
+                
+                var result = await query.Select(pm => new ProjectMasterDto
                 {
                     ProjectMasterID = pm.ProjectMasterID,
                     ProjectTitle = pm.ProjectTitle,
                     Description = pm.Description,
                     IsActive = pm.IsActive
-                }).ToListAsync();
+                })
+                .OrderBy(pm => pm.ProjectTitle)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
                 
-                return Ok(new ApiResponse<List<ProjectMasterDto>>
+                return Ok(new ApiResponse<object>
                 {
                     Success = true,
                     Message = "Project Master Retrieved Successfully !!",
-                    Data = result
+                    Data = new
+                    {
+                        result,
+                        pageNumber,
+                        pageSize,
+                        totalCount,
+                        totalPage = (int)Math.Ceiling(totalCount / (double) pageSize)
+                    }
                 });
             }
             catch (Exception ex)

@@ -27,10 +27,27 @@ namespace spm_backend.Controllers
         }
         
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? projectTitle,
+            [FromQuery] string? studentName,
+            [FromQuery] string? facultyName,
+            [FromQuery] int? projectId,
+            [FromQuery] bool? isActive,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
+                if (pageNumber < 1 || pageSize < 1)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Page number or size invalid",
+                        Errors = new List<string> { "Page number or size must be greater than 0" }
+                    });
+                }
+                
                 var userId = GetCurrentUserId();
         
                 if (userId == null)
@@ -45,15 +62,15 @@ namespace spm_backend.Controllers
                         }
                     });
                 }
-        
-                var roles = GetCurrentUserRoles();
-        
+                
                 var query = _context.ProjectAllocations
                     .AsNoTracking()
                     .Include(pa => pa.ProjectMaster)
                     .Include(pa => pa.UserStudent)
                     .Include(pa => pa.UserFaculty)
                     .AsQueryable();
+        
+                var roles = GetCurrentUserRoles();
         
                 if (roles.Contains("Admin"))
                 {
@@ -70,7 +87,34 @@ namespace spm_backend.Controllers
                 {
                     return Forbid();
                 }
+                
+                if (!string.IsNullOrWhiteSpace(projectTitle))
+                {
+                    query = query.Where(pa => pa.ProjectMaster.ProjectTitle.Contains(projectTitle));
+                }
+
+                if (!string.IsNullOrWhiteSpace(studentName))
+                {
+                    query = query.Where(pa => pa.UserStudent.FullName.Contains(studentName));
+                }
+                
+                if (!string.IsNullOrWhiteSpace(facultyName))
+                {
+                    query = query.Where(pa => pa.UserFaculty.FullName.Contains(facultyName));
+                }
+                
+                if (projectId.HasValue)
+                {
+                    query = query.Where(pa => pa.ProjectID == projectId.Value);
+                }
+                
+                if (isActive.HasValue)
+                {
+                    query = query.Where(pa => pa.IsActive == isActive.Value);
+                }
         
+                var totalCount = await query.CountAsync();
+                
                 var result = await query
                     .Select(pa => new ProjectAllocationDto
                     {
@@ -90,13 +134,23 @@ namespace spm_backend.Controllers
                         OverAllGrade = pa.OverAllGrade,
                         IsActive = pa.IsActive
                     })
+                    .OrderBy(pa => pa.ProjectAllocationID)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
         
-                return Ok(new ApiResponse<List<ProjectAllocationDto>>
+                return Ok(new ApiResponse<object>
                 {
                     Success = true,
                     Message = "Project Allocations Retrieved Successfully !!",
-                    Data = result
+                    Data = new
+                    {
+                        result,
+                        pageNumber,
+                        pageSize,
+                        totalCount,
+                        totalPage = (int)Math.Ceiling(totalCount / (double) pageSize)
+                    }
                 });
             }
             catch (Exception ex)
@@ -132,6 +186,16 @@ namespace spm_backend.Controllers
                     .Include(pa => pa.UserFaculty)
                     .FirstOrDefaultAsync(pa => pa.ProjectAllocationID == id);
                 
+                if (projectAllocation == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Project Allocation Not Found !!",
+                        Errors = new List<string> { $"No project allocation found with Id {id}" }
+                    });
+                }
+                
                 var roles = GetCurrentUserRoles();
 
                 if (!roles.Contains("Admin"))
@@ -147,16 +211,6 @@ namespace spm_backend.Controllers
                     {
                         return Forbid();
                     }
-                }
-                
-                if (projectAllocation == null)
-                {
-                    return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Project Allocation Not Found !!",
-                        Errors = new List<string> { $"No project allocation found with Id {id}" }
-                    });
                 }
                 
                 var result = new ProjectAllocationDto

@@ -89,12 +89,54 @@ namespace spm_backend.Controllers
         
         [Authorize(Roles = "Admin")]
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? fullName,
+            [FromQuery] string? email,
+            [FromQuery] int? userTypeId,
+            [FromQuery] bool? isActive,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
-                var result = await _context.Users
-                    .Include(u => u.UserType).Select(u => new UserDto
+                if (pageNumber < 1 || pageSize < 1)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Page number or size invalid",
+                        Errors = new List<string> { "Page number or size must be greater than 0" }
+                    });
+                }
+
+                var query = _context.Users
+                    .AsNoTracking()
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(fullName))
+                {
+                    query = query.Where(u => u.FullName.Contains(fullName));
+                }
+
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    query = query.Where(u => u.FullName.Contains(email));
+                }
+                
+                if (userTypeId.HasValue)
+                {
+                    query = query.Where(u => u.UserTypeID == userTypeId.Value);
+                }
+                
+                if (isActive.HasValue)
+                {
+                    query = query.Where(u => u.IsActive == isActive.Value);
+                }
+                
+                var totalCount = await query.CountAsync();
+                
+                var result = await query
+                    .Select(u => new UserDto
                     {
                         UserID = u.UserID,
                         UserTypeID = u.UserTypeID,
@@ -104,7 +146,11 @@ namespace spm_backend.Controllers
                         MobileNumber = u.MobileNumber,
                         ProfilePicturePath = u.ProfilePicturePath,
                         IsActive = u.IsActive
-                    }).ToListAsync();
+                    })
+                    .OrderBy(u => u.FullName)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
 
                 // var result = await _context.Users
                 //     .Join(
@@ -125,11 +171,18 @@ namespace spm_backend.Controllers
                 //     ).ToListAsync();
 
                 // return Ok(result);
-                return Ok(new ApiResponse<List<UserDto>>
+                return Ok(new ApiResponse<object>
                 {
                     Success = true,
                     Message = "User Retrieved Successfully !!",
-                    Data = result
+                    Data = new
+                    {
+                        result,
+                        pageNumber,
+                        pageSize,
+                        totalCount,
+                        totalPage = (int)Math.Ceiling(totalCount / (double) pageSize)
+                    }
                 });
             }
             catch (Exception ex)
